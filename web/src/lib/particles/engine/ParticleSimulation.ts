@@ -39,6 +39,10 @@ export class ParticleSimulation {
 	private timeSinceRecord = 0;
 	private densitySections: number[] = new Array(DENSITY_SECTIONS).fill(0);
 
+	/** Total KE when gravity was last turned on (for energy restoration on toggle-off) */
+	private keBeforeGravity = 0;
+	private wasGravityOn = false;
+
 	constructor() {
 		this.setup();
 	}
@@ -55,6 +59,8 @@ export class ParticleSimulation {
 		this.simTime = 0;
 		this.timeSinceRecord = 0;
 		this.densitySections = new Array(DENSITY_SECTIONS).fill(0);
+		this.keBeforeGravity = 0;
+		this.wasGravityOn = false;
 		this.stats.clear();
 
 		const massX = this.radiusX / 10;
@@ -93,10 +99,29 @@ export class ParticleSimulation {
 
 		const all = this.getAllParticles();
 
-		// 1. Apply gravity
+		// Gravity toggle detection: save/restore kinetic energy
+		if (this.gravityOn && !this.wasGravityOn) {
+			// Gravity just turned ON — record total KE
+			this.keBeforeGravity = this.computeTotalKE(all);
+			this.wasGravityOn = true;
+		} else if (!this.gravityOn && this.wasGravityOn) {
+			// Gravity just turned OFF — rescale velocities to restore pre-gravity KE
+			const keCurrent = this.computeTotalKE(all);
+			if (keCurrent > 1e-6 && this.keBeforeGravity > 1e-6) {
+				const scale = Math.sqrt(this.keBeforeGravity / keCurrent);
+				for (const p of all) {
+					p.vx *= scale;
+					p.vy *= scale;
+				}
+			}
+			this.wasGravityOn = false;
+		}
+
+		// 1. Leapfrog integration for gravity: half-step velocity
 		if (this.gravityOn) {
+			const halfG = this.gravity * 0.5;
 			for (const p of all) {
-				p.vy += this.gravity;
+				p.vy += halfG;
 			}
 		}
 
@@ -109,32 +134,34 @@ export class ParticleSimulation {
 			}
 		}
 
-		// 3. Boundary bounce — reflect position to preserve energy
+		// 3. Boundary bounce — MUST happen before second gravity half-step
 		for (const p of all) {
 			const r = p.radius;
 			if (p.x - r < 0) {
-				p.x = 2 * r - p.x;           // reflect overshoot
+				p.x = 2 * r - p.x;
 				p.vx = Math.abs(p.vx);
-			}
-			if (p.x + r > this.width) {
+			} else if (p.x + r > this.width) {
 				p.x = 2 * (this.width - r) - p.x;
 				p.vx = -Math.abs(p.vx);
 			}
-			if (!this.gravityOn && p.y - r < 0) {
+			if (p.y - r < 0) {
 				p.y = 2 * r - p.y;
 				p.vy = Math.abs(p.vy);
-			}
-			if (!this.gravityOn && p.y + r > this.height) {
-				p.y = 2 * (this.height - r) - p.y;
-				p.vy = -Math.abs(p.vy);
-			}
-			if (this.gravityOn && p.y + r > this.height) {
+			} else if (p.y + r > this.height) {
 				p.y = 2 * (this.height - r) - p.y;
 				p.vy = -Math.abs(p.vy);
 			}
 		}
 
-		// 4. Collision detection
+		// 4. Leapfrog: second half-step velocity for gravity
+		if (this.gravityOn) {
+			const halfG = this.gravity * 0.5;
+			for (const p of all) {
+				p.vy += halfG;
+			}
+		}
+
+		// 5. Collision detection
 		const handled = new Set<number>();
 		const allCurrent = this.getAllParticles();
 
@@ -174,7 +201,7 @@ export class ParticleSimulation {
 			}
 		}
 
-		// 5. Complex decay (C → X + Y)
+		// 6. Complex decay (C → X + Y)
 		if (this.complexes.length > 0) {
 			this.breakingAccumulator += this.decayConstant * dt * this.complexes.length;
 			while (this.breakingAccumulator >= 1 && this.complexes.length > 0) {
@@ -184,7 +211,7 @@ export class ParticleSimulation {
 			}
 		}
 
-		// 5b. Stabilized complex decay (S → X + Y + Z), rate = λ / stabilityFactor
+		// 6b. Stabilized complex decay (S → X + Y + Z), rate = λ / stabilityFactor
 		if (this.stabilized.length > 0) {
 			const sDecayRate = this.decayConstant / this.stabilityFactor;
 			this.stabilizedBreakingAccumulator += sDecayRate * dt * this.stabilized.length;
@@ -195,7 +222,7 @@ export class ParticleSimulation {
 			}
 		}
 
-		// 6. Record stats every ~1s of sim time
+		// 7. Record stats every ~1s of sim time
 		if (this.timeSinceRecord >= 1) {
 			this.computeDensity();
 			this.timeSinceRecord = 0;
@@ -222,6 +249,16 @@ export class ParticleSimulation {
 		a.vy -= impulse * b.mass * ny;
 		b.vx += impulse * a.mass * nx;
 		b.vy += impulse * a.mass * ny;
+
+		// Separate overlapping particles to prevent repeated collisions
+		const overlap = (a.radius + b.radius) - dist;
+		if (overlap > 0) {
+			const totalMass = a.mass + b.mass;
+			a.x += nx * overlap * (b.mass / totalMass);
+			a.y += ny * overlap * (b.mass / totalMass);
+			b.x -= nx * overlap * (a.mass / totalMass);
+			b.y -= ny * overlap * (a.mass / totalMass);
+		}
 	}
 
 	private formComplex(xp: Particle, yp: Particle): void {
@@ -409,6 +446,14 @@ export class ParticleSimulation {
 		this.atomX.push(xp);
 		this.atomY.push(yp);
 		this.atomZ.push(zp);
+	}
+
+	private computeTotalKE(particles: Particle[]): number {
+		let ke = 0;
+		for (const p of particles) {
+			ke += 0.5 * p.mass * (p.vx * p.vx + p.vy * p.vy);
+		}
+		return ke;
 	}
 
 	private computeDensity(): void {
