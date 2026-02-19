@@ -140,7 +140,9 @@
 		if (cfg.algorithm === Algorithm.SpontaneousCombustion) {
 			return cfg.halfLifeLeft > 0 ? cfg.halfLifeRight / cfg.halfLifeLeft : 0;
 		}
-		return cfg.speedBoy > 0 ? cfg.speedBoy / cfg.speedMan : 0;
+		if (cfg.speedMan <= 0) return 0;
+		const r = cfg.speedBoy / cfg.speedMan;
+		return cfg.algorithm === Algorithm.NearestApple ? r * r : r;
 	}
 
 	const chartConfigs = [

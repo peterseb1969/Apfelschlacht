@@ -12,7 +12,11 @@
 		if (algo === Algorithm.SpontaneousCombustion) {
 			return cfg.halfLifeLeft > 0 ? cfg.halfLifeRight / cfg.halfLifeLeft : 0;
 		}
-		return cfg.speedBoy > 0 ? cfg.speedBoy / cfg.speedMan : 0;
+		if (cfg.speedMan <= 0) return 0;
+		const r = cfg.speedBoy / cfg.speedMan;
+		// Nearest Apple: avg distance ∝ 1/√n in 2D, so ratio = (speed_ratio)²
+		// Random: avg distance independent of n, so ratio = speed_ratio
+		return algo === Algorithm.NearestApple ? r * r : r;
 	}
 </script>
 
