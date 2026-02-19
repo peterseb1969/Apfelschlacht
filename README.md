@@ -16,6 +16,18 @@ Two characters — an old man and a young boy — each want a clean garden. They
 | Random Apple | Each player picks a random apple to walk towards |
 | Spontaneous Apple Flight | Apples fly across the fence on their own, governed by half-life timers — no players involved |
 
+**Theoretical Steady-State Prediction:**
+
+At equilibrium, both players throw apples at the same rate. The throw rate depends on player speed and the average distance to the next apple. The prediction differs by mode:
+
+| Mode | Predicted Ratio (man / boy) | Reasoning |
+|------|----------------------------|-----------|
+| Nearest Apple | (v_boy / v_man)^2 | In 2D, the expected nearest-neighbor distance scales as d ~ 1/sqrt(n). A player's throw rate is proportional to speed x sqrt(n). Setting both rates equal yields a squared speed ratio. |
+| Random Apple | v_boy / v_man | The player walks to a random apple — the average distance depends only on field geometry, not apple count. Rates are simply proportional to speed, giving a linear ratio. |
+| Spontaneous Flight | t_half_right / t_half_left | No players involved. Each side's apples decay independently with their half-life. The ratio equals the half-life ratio. |
+
+With default speeds (boy = 5, man = 3), the Nearest Apple prediction is (5/3)^2 = 2.78, while the Random prediction is 5/3 = 1.67. The simulation displays both the theoretical prediction and the actual ratio for comparison.
+
 **Controls (sidebar):**
 
 - **Start / Pause** — run or pause the simulation

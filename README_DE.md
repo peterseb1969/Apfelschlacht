@@ -16,6 +16,18 @@ Zwei Figuren — ein alter Mann und ein Junge — wollen jeweils einen sauberen 
 | Zufaelliger Apfel | Jeder Spieler waehlt einen zufaelligen Apfel als Ziel |
 | Spontaner Apfelflug | Aepfel fliegen von selbst ueber den Zaun, gesteuert durch Halbwertszeiten — keine Spieler |
 
+**Theoretische Gleichgewichts-Vorhersage:**
+
+Im Gleichgewicht werfen beide Spieler Aepfel mit gleicher Rate. Die Wurfrate haengt von der Spielergeschwindigkeit und der mittleren Entfernung zum naechsten Apfel ab. Die Vorhersage unterscheidet sich je nach Modus:
+
+| Modus | Vorhergesagtes Verhaeltnis (Mann / Junge) | Begruendung |
+|-------|------------------------------------------|-------------|
+| Naechster Apfel | (v_Junge / v_Mann)^2 | In 2D skaliert die erwartete Naechster-Nachbar-Entfernung als d ~ 1/sqrt(n). Die Wurfrate eines Spielers ist proportional zu Geschwindigkeit x sqrt(n). Gleichsetzen beider Raten ergibt das quadrierte Geschwindigkeitsverhaeltnis. |
+| Zufaelliger Apfel | v_Junge / v_Mann | Der Spieler geht zu einem zufaelligen Apfel — die mittlere Entfernung haengt nur von der Feldgeometrie ab, nicht von der Apfelanzahl. Die Raten sind einfach proportional zur Geschwindigkeit, daher ein lineares Verhaeltnis. |
+| Spontaner Apfelflug | t_halb_rechts / t_halb_links | Keine Spieler beteiligt. Die Aepfel jeder Seite zerfallen unabhaengig mit ihrer Halbwertszeit. Das Verhaeltnis entspricht dem Halbwertszeitverhaeltnis. |
+
+Mit den Standard-Geschwindigkeiten (Junge = 5, Mann = 3) betraegt die Vorhersage fuer "Naechster Apfel" (5/3)^2 = 2,78, waehrend "Zufaelliger Apfel" 5/3 = 1,67 ergibt. Die Simulation zeigt sowohl die theoretische Vorhersage als auch das tatsaechliche Verhaeltnis zum Vergleich an.
+
 **Bedienelemente (Seitenleiste):**
 
 - **Start / Pause** — Simulation starten oder anhalten
