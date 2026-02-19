@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { chartData } from '$lib/stores/gameStore';
+	import { chartData, throwLog } from '$lib/stores/gameStore';
 
 	function download(content: string, filename: string, type: string) {
 		const blob = new Blob([content], { type });
@@ -23,11 +23,21 @@
 	function exportJSON() {
 		download(JSON.stringify($chartData, null, 2), 'apfelschlacht_data.json', 'application/json');
 	}
+
+	function exportThrowLog() {
+		const events = $throwLog;
+		let csv = 'time,player,x,y\n';
+		for (const e of events) {
+			csv += `${e.time.toFixed(3)},${e.player},${Math.round(e.x)},${Math.round(e.y)}\n`;
+		}
+		download(csv, 'apfelschlacht_paths.csv', 'text/csv');
+	}
 </script>
 
 <div class="export">
 	<button onclick={exportCSV}>CSV</button>
 	<button onclick={exportJSON}>JSON</button>
+	<button onclick={exportThrowLog}>Pfade CSV</button>
 </div>
 
 <style>

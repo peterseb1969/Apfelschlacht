@@ -4,7 +4,7 @@
 	import LiveCharts from '$lib/components/LiveCharts.svelte';
 	import StatsDisplay from '$lib/components/StatsDisplay.svelte';
 	import ExportButtons from '$lib/components/ExportButtons.svelte';
-	import { config, chartData, running } from '$lib/stores/gameStore';
+	import { config, chartData, running, throwLog } from '$lib/stores/gameStore';
 
 	let gameCanvas: GameCanvas;
 
@@ -14,6 +14,7 @@
 			let cfg: any;
 			config.subscribe(v => cfg = v)();
 			sim.setAlgorithm(cfg.algorithm);
+			throwLog.set(sim.throwLog);
 		}
 	}
 
@@ -24,6 +25,7 @@
 			config.subscribe(v => cfg = v)();
 			sim.appleCount = cfg.appleCount;
 			sim.setup();
+			throwLog.set(sim.throwLog);
 		}
 	}
 
@@ -33,6 +35,7 @@
 			sim.setup();
 			running.set(false);
 			chartData.set([]);
+			throwLog.set(sim.throwLog);
 		}
 	}
 </script>

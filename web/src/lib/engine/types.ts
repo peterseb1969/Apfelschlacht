@@ -54,3 +54,10 @@ export interface DistRecord {
 	player: string;
 	distance: number;
 }
+
+export interface ThrowEvent {
+	time: number;
+	player: string;
+	x: number;
+	y: number;
+}

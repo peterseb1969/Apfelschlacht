@@ -5,7 +5,7 @@
 	import { Algorithm } from '$lib/engine/constants';
 	import { CanvasRenderer } from '$lib/render/CanvasRenderer';
 	import { loadSprites } from '$lib/render/SpriteSheet';
-	import { running, config, chartData, latestState } from '$lib/stores/gameStore';
+	import { running, config, chartData, latestState, throwLog } from '$lib/stores/gameStore';
 	import type { ChartPoint } from '$lib/stores/gameStore';
 
 	let canvas: HTMLCanvasElement;
@@ -97,6 +97,8 @@
 				ratio: boyAll > 0 ? manAll / boyAll : 0
 			};
 			chartData.update(data => [...data, point]);
+			// Sync throw log to store
+			throwLog.set(simulation.throwLog);
 		}, 1000);
 
 		// Keyboard handler
@@ -112,12 +114,14 @@
 					simulation.changeAppleCount(50);
 					config.update(c => ({ ...c, appleCount: simulation.appleCount }));
 					chartData.set([]);
+					throwLog.set(simulation.throwLog);
 					break;
 				case 's':
 				case 'S':
 					simulation.changeAppleCount(-50);
 					config.update(c => ({ ...c, appleCount: simulation.appleCount }));
 					chartData.set([]);
+					throwLog.set(simulation.throwLog);
 					break;
 				case 'o':
 				case 'O':
@@ -153,16 +157,19 @@
 					simulation.setAlgorithm(Algorithm.NearestApple);
 					config.update(c => ({ ...c, algorithm: Algorithm.NearestApple }));
 					chartData.set([]);
+					throwLog.set(simulation.throwLog);
 					break;
 				case '2':
 					simulation.setAlgorithm(Algorithm.Random);
 					config.update(c => ({ ...c, algorithm: Algorithm.Random }));
 					chartData.set([]);
+					throwLog.set(simulation.throwLog);
 					break;
 				case '3':
 					simulation.setAlgorithm(Algorithm.SpontaneousCombustion);
 					config.update(c => ({ ...c, algorithm: Algorithm.SpontaneousCombustion }));
 					chartData.set([]);
+					throwLog.set(simulation.throwLog);
 					break;
 				case '+':
 				case '=':

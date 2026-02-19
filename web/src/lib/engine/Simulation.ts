@@ -5,7 +5,7 @@ import {
 	SCREEN_WIDTH, SCREEN_HEIGHT,
 	VALUES_FOR_AVERAGE, MIN_HERTZ, MAX_HERTZ
 } from './constants';
-import type { Apple, SimulationConfig, SimulationState } from './types';
+import type { Apple, SimulationConfig, SimulationState, ThrowEvent } from './types';
 import { Player } from './Player';
 import { MovingObject } from './MovingObject';
 import { StatsRecorder } from './StatsRecorder';
@@ -23,6 +23,7 @@ export class Simulation {
 	oldMan!: Player;
 	youngBoy!: Player;
 	allApples: Apple[] = [];
+	throwLog: ThrowEvent[] = [];
 	stats = new StatsRecorder();
 
 	simTime = 0;
@@ -50,6 +51,10 @@ export class Simulation {
 
 		this.oldMan.speedApple = this.speedApple;
 		this.youngBoy.speedApple = this.speedApple;
+
+		this.throwLog = [];
+		this.throwLog.push({ time: 0, player: 'boy', x: this.youngBoy.x, y: this.youngBoy.y });
+		this.throwLog.push({ time: 0, player: 'man', x: this.oldMan.x, y: this.oldMan.y });
 
 		this.allApples = [];
 		this.youngBoy.myApples = [];
@@ -105,7 +110,8 @@ export class Simulation {
 					p.x += p.deltaX;
 					p.y += p.deltaY;
 				} else {
-					// Arrived at apple — throw it to opposite side
+					// Arrived at apple — record throw event and throw to opposite side
+					this.throwLog.push({ time: this.simTime, player: p.name, x: p.x, y: p.y });
 					const offset = p.name === 'boy' ? this.width / 2 + 20 : 0;
 					const destX = Math.floor(Math.random() * (this.width / 2 - 20)) + offset + 10;
 					const destY = Math.floor(Math.random() * (this.height - 20)) + 10;

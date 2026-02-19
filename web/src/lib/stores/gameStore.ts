@@ -1,5 +1,5 @@
 import { writable } from 'svelte/store';
-import type { SimulationState, StatsSnapshot } from '$lib/engine/types';
+import type { SimulationState, StatsSnapshot, ThrowEvent } from '$lib/engine/types';
 import {
 	Algorithm, DEFAULT_HERTZ, DEFAULT_APPLE_COUNT,
 	DEFAULT_SPEED_MAN, DEFAULT_SPEED_BOY, DEFAULT_SPEED_APPLE
@@ -36,3 +36,4 @@ export const chartData = writable<ChartPoint[]>([]);
 export const maWindow = writable(10);
 
 export const latestState = writable<SimulationState | null>(null);
+export const throwLog = writable<ThrowEvent[]>([]);
