@@ -12,7 +12,7 @@
 		<a class="card" href="{base}/apfelschlacht">
 			<div class="card-icon">🍎</div>
 			<h2>Apfelschlacht</h2>
-			<p>Zwei Spieler werfen Äpfel — wer sammelt mehr? Verschiedene Strategien im Vergleich.</p>
+			<p>Zwei Nachbarn werfen Äpfel über den Zaun — wer hat zuerst einen sauberen Garten? Verschiedene Strategien im Vergleich.</p>
 		</a>
 		<a class="card" href="{base}/steady-state">
 			<div class="card-icon">⚛</div>
