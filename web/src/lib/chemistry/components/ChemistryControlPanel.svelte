@@ -1,0 +1,533 @@
+<script lang="ts">
+	import { MIN_HERTZ, MAX_HERTZ, MIN_EFFECTIVE_WIDTH, MAX_EFFECTIVE_WIDTH, MIN_TEMPERATURE, MAX_TEMPERATURE } from '../engine/constants';
+	import { running, config, chartData, maWindow, selectedReactionId, activeReaction } from '../stores/chemistryStore';
+	import { reactions, isBuiltIn, addReaction, updateReaction, deleteReaction } from '../stores/reactionListStore';
+	import { createEventDispatcher } from 'svelte';
+	import type { ReactionDefinition } from '../engine/types';
+	import ReactionEditor from './ReactionEditor.svelte';
+
+	const dispatch = createEventDispatcher();
+
+	// Per-species injection counts, editable by the user
+	let injectCounts = $state<Record<string, number>>({});
+
+	// Editor modal state
+	let editorOpen = $state(false);
+	let editorReaction = $state<ReactionDefinition | null>(null);
+
+	// Initialize counts when reaction changes
+	activeReaction.subscribe(($reaction) => {
+		if (!$reaction) return;
+		const counts: Record<string, number> = {};
+		for (const s of $reaction.species) {
+			counts[s.symbol] = s.defaultCount;
+		}
+		injectCounts = counts;
+	});
+
+	// Group reactions by category — reactive via $reactions
+	const categoryDefs = [
+		{ key: 'complexation', label: 'Komplexbildung' },
+		{ key: 'dissociation', label: 'Dissoziation' },
+		{ key: 'equilibrium', label: 'Gleichgewicht' },
+		{ key: 'acid-base', label: 'Säure-Base' },
+		{ key: 'exchange', label: 'Austausch' }
+	] as const;
+
+	let categories = $derived(
+		categoryDefs
+			.map(c => ({ label: c.label, reactions: $reactions.filter(r => r.category === c.key) }))
+			.filter(c => c.reactions.length > 0)
+	);
+
+	function selectReaction(e: Event) {
+		const id = (e.target as HTMLSelectElement).value;
+		$selectedReactionId = id;
+		const reaction = $reactions.find(r => r.id === id);
+		if (reaction) {
+			$activeReaction = reaction;
+			$config = { ...$config, forwardRateOverride: null, reverseRateOverride: null };
+			$running = false;
+			$chartData = [];
+			dispatch('reset');
+		}
+	}
+
+	function injectAll() {
+		const reaction = $activeReaction;
+		if (!reaction) return;
+		for (const s of reaction.species) {
+			const count = injectCounts[s.symbol] ?? 0;
+			if (count > 0) {
+				dispatch('inject', { symbol: s.symbol, count });
+			}
+		}
+		$running = true;
+	}
+
+	function injectOne(symbol: string) {
+		const count = injectCounts[symbol] ?? 0;
+		if (count > 0) {
+			dispatch('inject', { symbol, count });
+			if (!$running) $running = true;
+		}
+	}
+
+	function pause() {
+		$running = false;
+	}
+
+	function reset() {
+		$running = false;
+		$chartData = [];
+		const reaction = $reactions.find(r => r.id === $selectedReactionId);
+		if (reaction) {
+			$activeReaction = reaction;
+		}
+		dispatch('reset');
+	}
+
+	function setInjectCount(symbol: string, e: Event) {
+		const val = Math.max(0, Math.min(500, Number((e.target as HTMLInputElement).value) || 0));
+		injectCounts[symbol] = val;
+	}
+
+	function setForwardRate(e: Event) {
+		$config = { ...$config, forwardRateOverride: Number((e.target as HTMLInputElement).value) };
+	}
+
+	function setReverseRate(e: Event) {
+		$config = { ...$config, reverseRateOverride: Number((e.target as HTMLInputElement).value) };
+	}
+
+	function resetRates() {
+		$config = { ...$config, forwardRateOverride: null, reverseRateOverride: null };
+	}
+
+	function setHertz(e: Event) {
+		$config = { ...$config, hertz: Number((e.target as HTMLInputElement).value) };
+	}
+
+	function setGravity(e: Event) {
+		$config = { ...$config, gravity: Number((e.target as HTMLInputElement).value) };
+	}
+
+	function toggleGravity() {
+		$config = { ...$config, gravityOn: !$config.gravityOn };
+	}
+
+	function setMaWindow(e: Event) {
+		$maWindow = Number((e.target as HTMLInputElement).value);
+	}
+
+	// --- Editor actions ---
+
+	function openEditCurrent() {
+		if ($activeReaction) {
+			editorReaction = $activeReaction;
+			editorOpen = true;
+		}
+	}
+
+	function openNew() {
+		editorReaction = null;
+		editorOpen = true;
+	}
+
+	function handleEditorSave(r: ReactionDefinition) {
+		if (editorReaction) {
+			// Editing existing
+			updateReaction(editorReaction.id, r);
+			if ($selectedReactionId === editorReaction.id) {
+				$activeReaction = r;
+			}
+		} else {
+			// Creating new
+			addReaction(r);
+			$selectedReactionId = r.id;
+			$activeReaction = r;
+			$config = { ...$config, forwardRateOverride: null, reverseRateOverride: null };
+			$running = false;
+			$chartData = [];
+			dispatch('reset');
+		}
+		editorOpen = false;
+	}
+
+	function handleEditorCancel() {
+		editorOpen = false;
+	}
+
+	function handleDelete() {
+		const id = $selectedReactionId;
+		if (isBuiltIn(id)) return;
+		if (!confirm('Reaktion löschen?')) return;
+		deleteReaction(id);
+		// Switch to first available reaction
+		const first = $reactions[0];
+		if (first) {
+			$selectedReactionId = first.id;
+			$activeReaction = first;
+			$config = { ...$config, forwardRateOverride: null, reverseRateOverride: null };
+			$running = false;
+			$chartData = [];
+			dispatch('reset');
+		}
+	}
+</script>
+
+{#if editorOpen}
+	<ReactionEditor
+		reaction={editorReaction}
+		onSave={handleEditorSave}
+		onCancel={handleEditorCancel}
+	/>
+{/if}
+
+<div class="panel">
+	<div class="buttons">
+		<button class="primary" onclick={injectAll}>{'\u25B6'} Alle injizieren</button>
+		{#if $running}
+			<button onclick={pause}>{'\u23F8'} Pause</button>
+		{/if}
+		<button onclick={reset}>{'\u27F3'} Reset</button>
+	</div>
+
+	<details open>
+		<summary>Reaktion</summary>
+		<div class="controls">
+			<div class="select-row">
+				<select value={$selectedReactionId} onchange={selectReaction}>
+					{#each categories as cat}
+						<optgroup label={cat.label}>
+							{#each cat.reactions as r}
+								<option value={r.id}>{r.name}</option>
+							{/each}
+						</optgroup>
+					{/each}
+				</select>
+				<button class="icon-btn" onclick={openEditCurrent} title="Bearbeiten">{'\u270E'}</button>
+				{#if !isBuiltIn($selectedReactionId)}
+					<button class="icon-btn delete" onclick={handleDelete} title="Löschen">{'\u{1F5D1}'}</button>
+				{/if}
+			</div>
+
+			{#if $activeReaction}
+				<div class="equation">{$activeReaction.equation}</div>
+				<p class="description">{$activeReaction.description}</p>
+				<p class="description en">{$activeReaction.descriptionEn}</p>
+			{/if}
+
+			<button class="small-btn new-btn" onclick={openNew}>+ Neue Reaktion</button>
+		</div>
+	</details>
+
+	<details open>
+		<summary>Spezies</summary>
+		<div class="controls">
+			{#if $activeReaction}
+				{#each $activeReaction.species as species}
+					<div class="species-row">
+						<span class="swatch" style="background: {species.color}"></span>
+						<span class="species-symbol">{species.symbol}</span>
+						<input class="count-input" type="number" min={0} max={500}
+							value={injectCounts[species.symbol] ?? 0}
+							onchange={(e) => setInjectCount(species.symbol, e)} />
+						<button class="inject-btn" onclick={() => injectOne(species.symbol)}>{'\u25B6'}</button>
+					</div>
+				{/each}
+			{/if}
+		</div>
+	</details>
+
+	<details open>
+		<summary>Steuerung</summary>
+		<div class="controls">
+			<label>
+				Temperatur: {$config.temperature.toFixed(1)}
+				<input type="range" min={MIN_TEMPERATURE} max={MAX_TEMPERATURE} step={0.1} value={$config.temperature}
+					oninput={(e) => $config = { ...$config, temperature: Number((e.target as HTMLInputElement).value) }} />
+			</label>
+
+			<label>
+				Volumen: {$config.effectiveWidth}
+				<input type="range" min={MIN_EFFECTIVE_WIDTH} max={MAX_EFFECTIVE_WIDTH} step={10} value={$config.effectiveWidth}
+					oninput={(e) => $config = { ...$config, effectiveWidth: Number((e.target as HTMLInputElement).value) }} />
+			</label>
+
+			<label>
+				Hin-Rate: {($config.forwardRateOverride ?? $activeReaction?.forwardRate ?? 0).toFixed(2)}
+				<input type="range" min={0} max={2} step={0.05}
+					value={$config.forwardRateOverride ?? $activeReaction?.forwardRate ?? 0}
+					oninput={setForwardRate} />
+			</label>
+
+			<label>
+				Rück-Rate: {($config.reverseRateOverride ?? $activeReaction?.reverseRate ?? 0).toFixed(2)}
+				<input type="range" min={0} max={2} step={0.05}
+					value={$config.reverseRateOverride ?? $activeReaction?.reverseRate ?? 0}
+					oninput={setReverseRate} />
+			</label>
+
+			<button class="small-btn" onclick={resetRates}>Raten zurücksetzen</button>
+
+			<label class="checkbox-label">
+				<input type="checkbox" checked={$config.gravityOn} onchange={toggleGravity} />
+				Schwerkraft
+			</label>
+
+			{#if $config.gravityOn}
+				<label>
+					Schwerkraft-Stärke: {$config.gravity.toFixed(1)}
+					<input type="range" min={0} max={2} step={0.1} value={$config.gravity} oninput={setGravity} />
+				</label>
+			{/if}
+
+			<label>
+				Hertz: {$config.hertz}
+				<input type="range" min={MIN_HERTZ} max={MAX_HERTZ} step={10} value={$config.hertz} oninput={setHertz} />
+			</label>
+
+			<label>
+				GD-Fenster: {$maWindow}
+				<input type="range" min={2} max={50} value={$maWindow} oninput={setMaWindow} />
+			</label>
+		</div>
+	</details>
+
+	<details>
+		<summary>Darstellung</summary>
+		<div class="controls">
+			<label>
+				Hintergrund: {$config.bgGrey}
+				<input type="range" min={0} max={255} value={$config.bgGrey}
+					oninput={(e) => $config = { ...$config, bgGrey: Number((e.target as HTMLInputElement).value) }} />
+			</label>
+		</div>
+	</details>
+</div>
+
+<style>
+	.panel {
+		display: flex;
+		flex-direction: column;
+		gap: 10px;
+	}
+
+	details {
+		border: 1px solid #444;
+		border-radius: 4px;
+		padding: 0;
+	}
+
+	summary {
+		cursor: pointer;
+		padding: 6px 10px;
+		font-size: 0.95rem;
+		font-weight: 600;
+		user-select: none;
+		list-style: none;
+	}
+
+	summary::before {
+		content: '\25B6 ';
+		font-size: 0.7rem;
+		display: inline-block;
+		transition: transform 0.15s;
+	}
+
+	details[open] > summary::before {
+		content: '\25BC ';
+	}
+
+	.controls {
+		display: flex;
+		flex-direction: column;
+		gap: 10px;
+		padding: 0 10px 10px;
+	}
+
+	.select-row {
+		display: flex;
+		gap: 4px;
+		align-items: center;
+	}
+
+	.select-row select {
+		flex: 1;
+		min-width: 0;
+	}
+
+	select {
+		width: 100%;
+		padding: 4px 6px;
+		background: #333;
+		color: white;
+		border: 1px solid #666;
+		border-radius: 4px;
+		font-size: 0.85rem;
+	}
+
+	.icon-btn {
+		padding: 3px 6px;
+		background: #333;
+		color: #ccc;
+		border: 1px solid #666;
+		border-radius: 4px;
+		cursor: pointer;
+		font-size: 0.9rem;
+		flex-shrink: 0;
+		line-height: 1;
+	}
+
+	.icon-btn:hover {
+		background: #444;
+		color: #fff;
+	}
+
+	.icon-btn.delete {
+		color: #e74c3c;
+	}
+
+	.icon-btn.delete:hover {
+		background: #5c1a1a;
+		color: #ff6b6b;
+	}
+
+	.new-btn {
+		align-self: stretch;
+	}
+
+	.equation {
+		font-family: 'Times New Roman', serif;
+		font-size: 1.05rem;
+		color: #eee;
+		text-align: center;
+		padding: 6px 0;
+		background: #2a2a2a;
+		border-radius: 4px;
+	}
+
+	.description {
+		font-size: 0.8rem;
+		color: #999;
+		margin: 0;
+		line-height: 1.3;
+	}
+
+	.description.en {
+		font-style: italic;
+		color: #777;
+	}
+
+	.species-row {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		font-size: 0.85rem;
+	}
+
+	.swatch {
+		width: 14px;
+		height: 14px;
+		border-radius: 50%;
+		flex-shrink: 0;
+	}
+
+	.species-symbol {
+		flex: 1;
+		font-family: 'Times New Roman', serif;
+		min-width: 0;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.count-input {
+		width: 52px;
+		padding: 2px 4px;
+		font-size: 0.8rem;
+		text-align: right;
+		background: #333;
+		color: white;
+		border: 1px solid #666;
+		border-radius: 4px;
+		-moz-appearance: textfield;
+	}
+
+	.count-input::-webkit-inner-spin-button,
+	.count-input::-webkit-outer-spin-button {
+		-webkit-appearance: none;
+		margin: 0;
+	}
+
+	.inject-btn {
+		padding: 2px 8px;
+		font-size: 0.75rem;
+		cursor: pointer;
+		border: 1px solid #666;
+		border-radius: 4px;
+		background: #2a7d2a;
+		color: white;
+		flex-shrink: 0;
+	}
+
+	.inject-btn:hover {
+		background: #36993a;
+	}
+
+	.small-btn {
+		padding: 3px 8px;
+		font-size: 0.8rem;
+		cursor: pointer;
+		border: 1px solid #666;
+		border-radius: 4px;
+		background: #333;
+		color: #ccc;
+	}
+
+	.small-btn:hover {
+		background: #444;
+	}
+
+	label {
+		display: flex;
+		flex-direction: column;
+		font-size: 0.85rem;
+		gap: 2px;
+	}
+
+	.checkbox-label {
+		flex-direction: row;
+		align-items: center;
+		gap: 6px;
+	}
+
+	input[type="range"] {
+		width: 100%;
+	}
+
+	.buttons {
+		display: flex;
+		gap: 8px;
+	}
+
+	.buttons button {
+		flex: 1;
+		padding: 6px 12px;
+		cursor: pointer;
+		border: 1px solid #666;
+		border-radius: 4px;
+		font-size: 0.9rem;
+		background: #333;
+		color: white;
+	}
+
+	.buttons button.primary {
+		background: #2a7d2a;
+	}
+
+	.buttons button:hover {
+		opacity: 0.85;
+	}
+</style>

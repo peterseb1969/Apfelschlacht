@@ -19,13 +19,23 @@
 		return simulation;
 	}
 
-	onMount(async () => {
-		const sprites = await loadSprites(`${base}/sprites`);
-		simulation = new Simulation();
-		renderer = new CanvasRenderer(canvas, sprites);
+	onMount(() => {
+		let chartInterval: ReturnType<typeof setInterval>;
+		let unsubConfig: () => void;
+		let unsubRunning: () => void;
+		let handleKey: (e: KeyboardEvent) => void;
+		let destroyed = false;
 
+		loadSprites(`${base}/sprites`).then(sprites => {
+			if (destroyed) return;
+			simulation = new Simulation();
+			renderer = new CanvasRenderer(canvas, sprites);
+			init();
+		});
+
+		function init() {
 		// Subscribe to config changes
-		const unsubConfig = config.subscribe(($config) => {
+		unsubConfig = config.subscribe(($config) => {
 			if (!simulation) return;
 			simulation.hertz = $config.hertz;
 			simulation.oldMan.speed = $config.speedMan;
@@ -41,7 +51,7 @@
 			}
 		});
 
-		const unsubRunning = running.subscribe(($running) => {
+		unsubRunning = running.subscribe(($running) => {
 			if (simulation) simulation.running = $running;
 		});
 
@@ -81,7 +91,7 @@
 		rafId = requestAnimationFrame(loop);
 
 		// Push chart data every second
-		let chartInterval = setInterval(() => {
+		chartInterval = setInterval(() => {
 			if (!simulation || !simulation.running) return;
 			const state = simulation.getState();
 			const manAll = state.man.appleCount + state.man.flyApples;
@@ -102,7 +112,7 @@
 		}, 1000);
 
 		// Keyboard handler
-		function handleKey(e: KeyboardEvent) {
+		handleKey = function(e: KeyboardEvent) {
 			if (!simulation) return;
 			switch (e.key) {
 				case ' ':
@@ -183,16 +193,18 @@
 					config.update(c => ({ ...c, hertz: simulation.hertz }));
 					break;
 			}
-		}
+		};
 
 		window.addEventListener('keydown', handleKey);
+		} // end init()
 
 		return () => {
+			destroyed = true;
 			cancelAnimationFrame(rafId);
-			clearInterval(chartInterval);
-			window.removeEventListener('keydown', handleKey);
-			unsubConfig();
-			unsubRunning();
+			if (chartInterval) clearInterval(chartInterval);
+			if (handleKey) window.removeEventListener('keydown', handleKey);
+			if (unsubConfig) unsubConfig();
+			if (unsubRunning) unsubRunning();
 		};
 	});
 </script>

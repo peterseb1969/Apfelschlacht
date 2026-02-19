@@ -21,6 +21,12 @@
 			<p>Partikel-Simulation: Assoziation, Dissoziation und Gleichgewicht mit optionaler Schwerkraft.</p>
 			<p class="en">Particle simulation: association, dissociation, and equilibrium with optional gravity.</p>
 		</a>
+		<a class="card" href="{base}/chemistry">
+			<div class="card-icon">🧪</div>
+			<h2>Chemie</h2>
+			<p>Echte chemische Reaktionen simulieren — Gleichgewicht, Le Chatelier und Druckeffekte.</p>
+			<p class="en">Simulate real chemical reactions — equilibrium, Le Chatelier, and pressure effects.</p>
+		</a>
 	</div>
 	<footer class="credits">
 		Player sprites by <a href="https://kenney.nl" target="_blank" rel="noopener">Kenney.nl</a> (CC0)
@@ -46,10 +52,16 @@
 
 	.cards {
 		display: grid;
-		grid-template-columns: repeat(2, 1fr);
+		grid-template-columns: repeat(3, 1fr);
 		gap: 24px;
-		max-width: 700px;
+		max-width: 1050px;
 		width: 100%;
+	}
+
+	@media (max-width: 900px) {
+		.cards {
+			grid-template-columns: repeat(2, 1fr);
+		}
 	}
 
 	@media (max-width: 600px) {
