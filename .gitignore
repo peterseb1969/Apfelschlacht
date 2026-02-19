@@ -7,6 +7,10 @@ __pycache__/
 *.pyc
 venv/
 .venv/
+SteadyState/lib/
+SteadyState/bin/
+SteadyState/include/
+SteadyState/pyvenv.cfg
 
 # IDE
 .idea/

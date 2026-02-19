@@ -111,15 +111,17 @@
 					break;
 				case 'w':
 				case 'W':
-					simulation.changeAppleCount(50);
-					config.update(c => ({ ...c, appleCount: simulation.appleCount }));
+					simulation.applesBoy = Math.max(0, simulation.applesBoy + 50);
+					simulation.setup();
+					config.update(c => ({ ...c, applesBoy: simulation.applesBoy }));
 					chartData.set([]);
 					throwLog.set(simulation.throwLog);
 					break;
 				case 's':
 				case 'S':
-					simulation.changeAppleCount(-50);
-					config.update(c => ({ ...c, appleCount: simulation.appleCount }));
+					simulation.applesBoy = Math.max(0, simulation.applesBoy - 50);
+					simulation.setup();
+					config.update(c => ({ ...c, applesBoy: simulation.applesBoy }));
 					chartData.set([]);
 					throwLog.set(simulation.throwLog);
 					break;

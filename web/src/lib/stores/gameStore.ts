@@ -10,7 +10,8 @@ export const running = writable(false);
 export const config = writable({
 	algorithm: Algorithm.NearestApple,
 	hertz: DEFAULT_HERTZ,
-	appleCount: DEFAULT_APPLE_COUNT,
+	applesBoy: DEFAULT_APPLE_COUNT,
+	applesMan: 0,
 	speedMan: DEFAULT_SPEED_MAN,
 	speedBoy: DEFAULT_SPEED_BOY,
 	speedApple: DEFAULT_SPEED_APPLE,

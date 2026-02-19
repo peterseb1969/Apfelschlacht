@@ -48,8 +48,26 @@
 		$config = { ...$config, halfLifeRight: Number((e.target as HTMLInputElement).value) };
 	}
 
-	function changeAppleCount(delta: number) {
-		$config = { ...$config, appleCount: Math.max(50, $config.appleCount + delta) };
+	function changeApplesBoy(delta: number) {
+		$config = { ...$config, applesBoy: Math.max(0, $config.applesBoy + delta) };
+		$chartData = [];
+		dispatch('apple-count-change');
+	}
+
+	function changeApplesMan(delta: number) {
+		$config = { ...$config, applesMan: Math.max(0, $config.applesMan + delta) };
+		$chartData = [];
+		dispatch('apple-count-change');
+	}
+
+	function setApplesBoy(e: Event) {
+		$config = { ...$config, applesBoy: Number((e.target as HTMLInputElement).value) };
+		$chartData = [];
+		dispatch('apple-count-change');
+	}
+
+	function setApplesMan(e: Event) {
+		$config = { ...$config, applesMan: Number((e.target as HTMLInputElement).value) };
 		$chartData = [];
 		dispatch('apple-count-change');
 	}
@@ -113,10 +131,18 @@
 			</label>
 
 			<div class="apple-count">
-				<span>Äpfel: {$config.appleCount}</span>
-				<button onclick={() => changeAppleCount(-50)}>-50</button>
-				<button onclick={() => changeAppleCount(50)}>+50</button>
+				<span>Äpfel links: {$config.applesBoy}</span>
+				<button onclick={() => changeApplesBoy(-50)}>-50</button>
+				<button onclick={() => changeApplesBoy(50)}>+50</button>
 			</div>
+			<input type="range" min={0} max={500} step={10} value={$config.applesBoy} oninput={setApplesBoy} />
+
+			<div class="apple-count">
+				<span>Äpfel rechts: {$config.applesMan}</span>
+				<button onclick={() => changeApplesMan(-50)}>-50</button>
+				<button onclick={() => changeApplesMan(50)}>+50</button>
+			</div>
+			<input type="range" min={0} max={500} step={10} value={$config.applesMan} oninput={setApplesMan} />
 
 			<label>
 				Hertz: {$config.hertz}

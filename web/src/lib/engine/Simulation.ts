@@ -17,7 +17,8 @@ export class Simulation {
 	height: number;
 	algorithm: Algorithm;
 	hertz: number;
-	appleCount: number;
+	applesBoy: number;
+	applesMan: number;
 	speedApple: number;
 
 	oldMan!: Player;
@@ -35,7 +36,8 @@ export class Simulation {
 		this.height = SCREEN_HEIGHT;
 		this.algorithm = Algorithm.NearestApple;
 		this.hertz = DEFAULT_HERTZ;
-		this.appleCount = DEFAULT_APPLE_COUNT;
+		this.applesBoy = DEFAULT_APPLE_COUNT;
+		this.applesMan = 0;
 		this.speedApple = DEFAULT_SPEED_APPLE;
 		this.setup();
 	}
@@ -60,7 +62,8 @@ export class Simulation {
 		this.youngBoy.myApples = [];
 		this.oldMan.myApples = [];
 
-		for (let i = 0; i < this.appleCount; i++) {
+		// Boy's apples on the left side
+		for (let i = 0; i < this.applesBoy; i++) {
 			const apple: Apple = {
 				x: Math.floor(Math.random() * (this.width / 2 - 20)) + 10,
 				y: Math.floor(Math.random() * (this.height - 20)) + 10,
@@ -68,6 +71,17 @@ export class Simulation {
 			};
 			this.allApples.push(apple);
 			this.youngBoy.myApples.push(apple);
+		}
+
+		// Man's apples on the right side
+		for (let i = 0; i < this.applesMan; i++) {
+			const apple: Apple = {
+				x: Math.floor(Math.random() * (this.width / 2 - 20)) + this.width / 2 + 10,
+				y: Math.floor(Math.random() * (this.height - 20)) + 10,
+				id: nextAppleId++
+			};
+			this.allApples.push(apple);
+			this.oldMan.myApples.push(apple);
 		}
 	}
 
@@ -196,9 +210,8 @@ export class Simulation {
 		this.hertz = Math.max(MIN_HERTZ, Math.min(MAX_HERTZ, this.hertz + delta));
 	}
 
-	changeAppleCount(delta: number): void {
-		this.appleCount = Math.max(50, this.appleCount + delta);
-		this.setup();
+	get appleCount(): number {
+		return this.applesBoy + this.applesMan;
 	}
 
 	setAlgorithm(algo: Algorithm): void {

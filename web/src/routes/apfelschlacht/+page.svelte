@@ -23,7 +23,8 @@
 		if (sim) {
 			let cfg: any;
 			config.subscribe(v => cfg = v)();
-			sim.appleCount = cfg.appleCount;
+			sim.applesBoy = cfg.applesBoy;
+			sim.applesMan = cfg.applesMan;
 			sim.setup();
 			throwLog.set(sim.throwLog);
 		}
