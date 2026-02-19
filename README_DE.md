@@ -161,3 +161,7 @@ web/src/
       stores/                    # Partikel State-Stores
       components/                # Partikel UI-Komponenten
 ```
+
+## Credits
+
+Spieler-Sprites von [Kenney.nl](https://kenney.nl) (CC0 — gemeinfrei).

@@ -161,3 +161,7 @@ web/src/
       stores/                    # Particle state stores
       components/                # Particle UI components
 ```
+
+## Credits
+
+Player sprites by [Kenney.nl](https://kenney.nl) (CC0 — public domain).

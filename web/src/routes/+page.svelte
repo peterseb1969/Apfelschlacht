@@ -13,13 +13,18 @@
 			<div class="card-icon">🍎</div>
 			<h2>Apfelschlacht</h2>
 			<p>Zwei Nachbarn werfen Äpfel über den Zaun — wer hat zuerst einen sauberen Garten? Verschiedene Strategien im Vergleich.</p>
+			<p class="en">Two neighbors throw apples over the fence — who clears their garden first? Comparing different strategies.</p>
 		</a>
 		<a class="card" href="{base}/steady-state">
 			<div class="card-icon">⚛</div>
 			<h2>Steady State</h2>
 			<p>Partikel-Simulation: Assoziation, Dissoziation und Gleichgewicht mit optionaler Schwerkraft.</p>
+			<p class="en">Particle simulation: association, dissociation, and equilibrium with optional gravity.</p>
 		</a>
 	</div>
+	<footer class="credits">
+		Player sprites by <a href="https://kenney.nl" target="_blank" rel="noopener">Kenney.nl</a> (CC0)
+	</footer>
 </div>
 
 <style>
@@ -88,5 +93,23 @@
 		font-size: 0.9rem;
 		color: #999;
 		line-height: 1.4;
+	}
+
+	.card p.en {
+		margin-top: 6px;
+		font-style: italic;
+		color: #777;
+		font-size: 0.82rem;
+	}
+
+	.credits {
+		margin-top: 40px;
+		font-size: 0.75rem;
+		color: #666;
+	}
+
+	.credits a {
+		color: #888;
+		text-decoration: underline;
 	}
 </style>
