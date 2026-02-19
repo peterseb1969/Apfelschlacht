@@ -133,19 +133,6 @@ npm run build
 npm run preview
 ```
 
-### Legacy Python Version
-
-The original Python version requires Python 3.8–3.11 and arcade 2.6+:
-
-```bash
-python3 -m venv venv
-source venv/bin/activate
-pip install arcade==2.6.17
-python Apfelschlacht.py           # Apple battle
-python SteadyState/SteadyState.py # Particle sim
-python SteadyState/LuftDruck.py   # Particle sim with gravity
-```
-
 ## Tech Stack
 
 - **SvelteKit** with static adapter (fully client-side, no server needed)
