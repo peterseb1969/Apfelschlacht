@@ -156,6 +156,11 @@
 				<input type="range" min={MIN_HERTZ} max={MAX_HERTZ} step={10} value={$config.hertz} oninput={setHertz} />
 			</label>
 
+			<label>
+				Temperatur: {$config.temperature.toFixed(1)}
+				<input type="range" min={0.1} max={5} step={0.1} value={$config.temperature} oninput={(e) => $config = { ...$config, temperature: Number((e.target as HTMLInputElement).value) }} />
+			</label>
+
 			<label class="checkbox-label">
 				<input type="checkbox" checked={$config.gravityOn} onchange={toggleGravity} />
 				Schwerkraft

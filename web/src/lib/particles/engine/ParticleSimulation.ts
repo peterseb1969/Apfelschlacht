@@ -42,6 +42,7 @@ export class ParticleSimulation {
 	/** Total KE when gravity was last turned on (for energy restoration on toggle-off) */
 	private keBeforeGravity = 0;
 	private wasGravityOn = false;
+	private currentTemperature = 1.0;
 
 	constructor() {
 		this.setup();
@@ -61,6 +62,7 @@ export class ParticleSimulation {
 		this.densitySections = new Array(DENSITY_SECTIONS).fill(0);
 		this.keBeforeGravity = 0;
 		this.wasGravityOn = false;
+		this.currentTemperature = 1.0;
 		this.stats.clear();
 
 		const massX = this.radiusX / 10;
@@ -454,6 +456,18 @@ export class ParticleSimulation {
 			ke += 0.5 * p.mass * (p.vx * p.vx + p.vy * p.vy);
 		}
 		return ke;
+	}
+
+	setTemperature(newTemp: number): void {
+		if (newTemp <= 0 || this.currentTemperature <= 0) return;
+		const all = this.getAllParticles();
+		if (all.length === 0) return;
+		const scale = Math.sqrt(newTemp / this.currentTemperature);
+		for (const p of all) {
+			p.vx *= scale;
+			p.vy *= scale;
+		}
+		this.currentTemperature = newTemp;
 	}
 
 	private computeDensity(): void {

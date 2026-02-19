@@ -30,6 +30,7 @@
 			simulation.motionRange = $config.motionRange;
 			simulation.gravity = $config.gravity;
 			simulation.gravityOn = $config.gravityOn;
+			simulation.setTemperature($config.temperature);
 			renderColors = { colorX: $config.colorX, colorY: $config.colorY, colorZ: $config.colorZ, bgGrey: $config.bgGrey };
 		});
 

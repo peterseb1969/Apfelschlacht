@@ -22,6 +22,7 @@ export const config = writable({
 	motionRange: DEFAULT_MOTION,
 	gravity: DEFAULT_GRAVITY,
 	gravityOn: false,
+	temperature: 1.0,
 	colorX: '#3498db',
 	colorY: '#e74c3c',
 	colorZ: '#f39c12',
