@@ -45,8 +45,8 @@ export class Simulation {
 		this.timeSinceTick = 0;
 		this.stats.clear();
 
-		this.oldMan = new Player('man', 100, 100, DEFAULT_SPEED_MAN, this.width, this.height);
-		this.youngBoy = new Player('boy', this.width / 2 + 100, 100, DEFAULT_SPEED_BOY, this.width, this.height);
+		this.youngBoy = new Player('boy', 100, 100, DEFAULT_SPEED_BOY, this.width, this.height);
+		this.oldMan = new Player('man', this.width / 2 + 100, 100, DEFAULT_SPEED_MAN, this.width, this.height);
 
 		this.oldMan.speedApple = this.speedApple;
 		this.youngBoy.speedApple = this.speedApple;
@@ -57,7 +57,7 @@ export class Simulation {
 
 		for (let i = 0; i < this.appleCount; i++) {
 			const apple: Apple = {
-				x: Math.floor(Math.random() * (this.width / 2 - 20)) + this.width / 2 + 10,
+				x: Math.floor(Math.random() * (this.width / 2 - 20)) + 10,
 				y: Math.floor(Math.random() * (this.height - 20)) + 10,
 				id: nextAppleId++
 			};
@@ -106,17 +106,17 @@ export class Simulation {
 					p.y += p.deltaY;
 				} else {
 					// Arrived at apple — throw it to opposite side
-					const offset = p.name === 'man' ? this.width / 2 + 20 : 0;
+					const offset = p.name === 'boy' ? this.width / 2 + 20 : 0;
 					const destX = Math.floor(Math.random() * (this.width / 2 - 20)) + offset + 10;
 					const destY = Math.floor(Math.random() * (this.height - 20)) + 10;
 					const flyApple = new MovingObject(destX, destY, this.speedApple, p.nextApple);
 
 					if (destX > this.width / 2) {
-						this.oldMan.flyApples++;
-						this.oldMan.objsInMotion.push(flyApple);
-					} else {
 						this.youngBoy.flyApples++;
 						this.youngBoy.objsInMotion.push(flyApple);
+					} else {
+						this.oldMan.flyApples++;
+						this.oldMan.objsInMotion.push(flyApple);
 					}
 
 					const idx = p.myApples.indexOf(p.nextApple);

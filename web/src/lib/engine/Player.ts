@@ -93,7 +93,7 @@ export class Player {
 		for (let i = this.myApples.length - 1; i >= 0; i--) {
 			if (Math.random() < p) {
 				const apple = this.myApples[i];
-				const offset = this.name === 'man' ? this.screenWidth / 2 + 20 : 0;
+				const offset = this.name === 'boy' ? this.screenWidth / 2 + 20 : 0;
 				const destX = Math.floor(Math.random() * (this.screenWidth / 2 - 20)) + offset + 10;
 				const destY = Math.floor(Math.random() * (this.screenHeight - 20)) + 10;
 				const flyApple = new MovingObject(destX, destY, this.speedApple, apple);
