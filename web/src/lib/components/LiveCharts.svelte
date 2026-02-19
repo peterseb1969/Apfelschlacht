@@ -11,10 +11,12 @@
 	let appleCanvas: HTMLCanvasElement;
 	let flyingCanvas: HTMLCanvasElement;
 	let distCanvas: HTMLCanvasElement;
+	let ratioCanvas: HTMLCanvasElement;
 
 	let appleChart: Chart;
 	let flyingChart: Chart;
 	let distChart: Chart;
+	let ratioChart: Chart;
 
 	// Modal state
 	let modalOpen = $state(false);
@@ -125,10 +127,27 @@
 		});
 	}
 
+	function makeRatioDatasets() {
+		return [
+			{ label: 'Verhältnis', data: [] as number[], borderColor: '#f39c12', borderWidth: 1.5, pointRadius: 0, fill: false },
+			{ label: 'Verhältnis (GD)', data: [] as (number | null)[], borderColor: '#f39c12', borderWidth: 2.5, borderDash: [5, 3], pointRadius: 0, fill: false },
+			{ label: 'Theorie', data: [] as number[], borderColor: '#aaa', borderWidth: 1.5, borderDash: [3, 3], pointRadius: 0, fill: false }
+		];
+	}
+
+	function getTheoreticalRatio(): number {
+		const cfg = get(config);
+		if (cfg.algorithm === Algorithm.SpontaneousCombustion) {
+			return cfg.halfLifeLeft > 0 ? cfg.halfLifeRight / cfg.halfLifeLeft : 0;
+		}
+		return cfg.speedBoy > 0 ? cfg.speedBoy / cfg.speedMan : 0;
+	}
+
 	const chartConfigs = [
-		{ title: 'Äpfel-Bestand', getSeriesA: (d: ChartPoint) => d.manTotal, getSeriesB: (d: ChartPoint) => d.boyTotal },
-		{ title: 'Fliegende Äpfel', getSeriesA: (d: ChartPoint) => d.manFlying, getSeriesB: (d: ChartPoint) => d.boyFlying },
-		{ title: 'Durchschn. Entfernung', getSeriesA: (d: ChartPoint) => d.manDist, getSeriesB: (d: ChartPoint) => d.boyDist }
+		{ title: 'Äpfel-Bestand', getSeriesA: (d: ChartPoint) => d.manTotal, getSeriesB: (d: ChartPoint) => d.boyTotal, isRatio: false },
+		{ title: 'Fliegende Äpfel', getSeriesA: (d: ChartPoint) => d.manFlying, getSeriesB: (d: ChartPoint) => d.boyFlying, isRatio: false },
+		{ title: 'Durchschn. Entfernung', getSeriesA: (d: ChartPoint) => d.manDist, getSeriesB: (d: ChartPoint) => d.boyDist, isRatio: false },
+		{ title: 'Verhältnis Mann / Junge', getSeriesA: (d: ChartPoint) => d.ratio, getSeriesB: (d: ChartPoint) => d.ratio, isRatio: true }
 	];
 
 	function openModal(index: number) {
@@ -140,9 +159,10 @@
 		requestAnimationFrame(() => {
 			if (!modalCanvas) return;
 			modalChart?.destroy();
+			const datasets = chartConfigs[index].isRatio ? makeRatioDatasets() : makeDatasets();
 			modalChart = new Chart(modalCanvas, {
 				type: 'line',
-				data: { labels: [], datasets: makeDatasets() },
+				data: { labels: [], datasets },
 				options: { ...bigChartOpts, plugins: { ...bigChartOpts.plugins, title: { display: true, text: chartConfigs[index].title, color: '#ddd', font: { size: 18 } } } },
 				plugins: [stableScalePlugin]
 			});
@@ -176,17 +196,25 @@
 		const data = get(chartData);
 		if (data.length === 0) return;
 		const w = get(maWindow);
-
 		const cfg = chartConfigs[activeChartIndex];
-		const fullA = data.map(cfg.getSeriesA);
-		const fullB = data.map(cfg.getSeriesB);
 		const view = data.slice(-CHART_WINDOW);
 
-		modalChart.data.labels = view.map(d => d.time);
-		modalChart.data.datasets[0].data = fullA.slice(-CHART_WINDOW);
-		modalChart.data.datasets[1].data = fullB.slice(-CHART_WINDOW);
-		modalChart.data.datasets[2].data = windowedMA(fullA, w);
-		modalChart.data.datasets[3].data = windowedMA(fullB, w);
+		if (cfg.isRatio) {
+			const fullRatio = data.map(d => d.ratio);
+			const theory = getTheoreticalRatio();
+			modalChart.data.labels = view.map(d => d.time);
+			modalChart.data.datasets[0].data = fullRatio.slice(-CHART_WINDOW);
+			modalChart.data.datasets[1].data = windowedMA(fullRatio, w);
+			modalChart.data.datasets[2].data = new Array(view.length).fill(theory);
+		} else {
+			const fullA = data.map(cfg.getSeriesA);
+			const fullB = data.map(cfg.getSeriesB);
+			modalChart.data.labels = view.map(d => d.time);
+			modalChart.data.datasets[0].data = fullA.slice(-CHART_WINDOW);
+			modalChart.data.datasets[1].data = fullB.slice(-CHART_WINDOW);
+			modalChart.data.datasets[2].data = windowedMA(fullA, w);
+			modalChart.data.datasets[3].data = windowedMA(fullB, w);
+		}
 		modalChart.update('none');
 	}
 
@@ -226,6 +254,17 @@
 		distChart.data.datasets[3].data = windowedMA(fullBoyDist, w);
 		distChart.update('none');
 
+		// Ratio chart
+		if (ratioChart) {
+			const fullRatio = data.map(d => d.ratio);
+			const theory = getTheoreticalRatio();
+			ratioChart.data.labels = labels;
+			ratioChart.data.datasets[0].data = fullRatio.slice(-CHART_WINDOW);
+			ratioChart.data.datasets[1].data = windowedMA(fullRatio, w);
+			ratioChart.data.datasets[2].data = new Array(view.length).fill(theory);
+			ratioChart.update('none');
+		}
+
 		syncModalChart();
 	}
 
@@ -251,18 +290,28 @@
 			plugins: [stableScalePlugin]
 		});
 
+		ratioChart = new Chart(ratioCanvas, {
+			type: 'line',
+			data: { labels: [], datasets: makeRatioDatasets() },
+			options: { ...smallChartOpts, plugins: { ...smallChartOpts.plugins, title: { display: true, text: 'Verhältnis Mann / Junge', color: '#ddd', font: { size: 12 } } } },
+			plugins: [stableScalePlugin]
+		});
+
 		window.addEventListener('keydown', handleKeydown);
 	});
 
 	const unsubData = chartData.subscribe(() => updateAllCharts());
 	const unsubMa = maWindow.subscribe(() => updateAllCharts());
+	const unsubConfig = config.subscribe(() => updateAllCharts());
 
 	onDestroy(() => {
 		unsubData();
 		unsubMa();
+		unsubConfig();
 		appleChart?.destroy();
 		flyingChart?.destroy();
 		distChart?.destroy();
+		ratioChart?.destroy();
 		modalChart?.destroy();
 		window.removeEventListener('keydown', handleKeydown);
 	});
@@ -280,6 +329,10 @@
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<div class="chart-box" class:hidden={$config.algorithm === Algorithm.SpontaneousCombustion} onclick={() => openModal(2)} onkeydown={(e) => e.key === 'Enter' && openModal(2)} role="button" tabindex="0" title="Zum Vergrößern klicken">
 		<canvas bind:this={distCanvas}></canvas>
+	</div>
+	<!-- svelte-ignore a11y_no_static_element_interactions -->
+	<div class="chart-box" onclick={() => openModal(3)} onkeydown={(e) => e.key === 'Enter' && openModal(3)} role="button" tabindex="0" title="Zum Vergrößern klicken">
+		<canvas bind:this={ratioCanvas}></canvas>
 	</div>
 </div>
 

@@ -1,6 +1,19 @@
 <script lang="ts">
-	import { latestState } from '$lib/stores/gameStore';
+	import { latestState, config } from '$lib/stores/gameStore';
 	import { Algorithm } from '$lib/engine/constants';
+
+	function getActualRatio(man: { appleCount: number; flyApples: number }, boy: { appleCount: number; flyApples: number }): number {
+		const manAll = man.appleCount + man.flyApples;
+		const boyAll = boy.appleCount + boy.flyApples;
+		return boyAll > 0 ? manAll / boyAll : 0;
+	}
+
+	function getTheoreticalRatio(cfg: typeof $config, algo: Algorithm): number {
+		if (algo === Algorithm.SpontaneousCombustion) {
+			return cfg.halfLifeLeft > 0 ? cfg.halfLifeRight / cfg.halfLifeLeft : 0;
+		}
+		return cfg.speedBoy > 0 ? cfg.speedBoy / cfg.speedMan : 0;
+	}
 </script>
 
 {#if $latestState}
@@ -35,6 +48,16 @@
 			{/if}
 		</tbody>
 	</table>
+	<div class="ratio">
+		<div class="ratio-row">
+			<span class="ratio-label">Verhältnis Mann/Junge</span>
+			<span class="ratio-value">{getActualRatio($latestState.man, $latestState.boy).toFixed(2)}</span>
+		</div>
+		<div class="ratio-row theory">
+			<span class="ratio-label">Theorie</span>
+			<span class="ratio-value">{getTheoreticalRatio($config, $latestState.algorithm).toFixed(2)}</span>
+		</div>
+	</div>
 </div>
 {/if}
 
@@ -68,5 +91,23 @@
 	thead th {
 		border-bottom: 1px solid #555;
 		font-weight: 600;
+	}
+
+	.ratio {
+		margin-top: 8px;
+		padding-top: 6px;
+		border-top: 1px solid #555;
+	}
+
+	.ratio-row {
+		display: flex;
+		justify-content: space-between;
+		padding: 2px 6px;
+		font-size: 0.8rem;
+	}
+
+	.ratio-row.theory {
+		color: #999;
+		font-style: italic;
 	}
 </style>

@@ -33,8 +33,8 @@
 			simulation.speedApple = $config.speedApple;
 			simulation.oldMan.speedApple = $config.speedApple;
 			simulation.youngBoy.speedApple = $config.speedApple;
-			simulation.oldMan.halfLife = $config.halfLifeLeft;
-			simulation.youngBoy.halfLife = $config.halfLifeRight;
+			simulation.youngBoy.halfLife = $config.halfLifeLeft;
+			simulation.oldMan.halfLife = $config.halfLifeRight;
 			if (renderer) {
 				renderer.appleSize = $config.appleSize;
 				renderer.playerSize = $config.playerSize;
@@ -84,6 +84,8 @@
 		let chartInterval = setInterval(() => {
 			if (!simulation || !simulation.running) return;
 			const state = simulation.getState();
+			const manAll = state.man.appleCount + state.man.flyApples;
+			const boyAll = state.boy.appleCount + state.boy.flyApples;
 			const point: ChartPoint = {
 				time: Math.round(state.simTime),
 				manTotal: state.man.appleCount,
@@ -91,7 +93,8 @@
 				manFlying: state.man.flyApples,
 				boyFlying: state.boy.flyApples,
 				manDist: state.man.avgDist,
-				boyDist: state.boy.avgDist
+				boyDist: state.boy.avgDist,
+				ratio: boyAll > 0 ? manAll / boyAll : 0
 			};
 			chartData.update(data => [...data, point]);
 		}, 1000);

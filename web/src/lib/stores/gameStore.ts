@@ -28,6 +28,7 @@ export interface ChartPoint {
 	boyFlying: number;
 	manDist: number;
 	boyDist: number;
+	ratio: number;
 }
 
 export const chartData = writable<ChartPoint[]>([]);
