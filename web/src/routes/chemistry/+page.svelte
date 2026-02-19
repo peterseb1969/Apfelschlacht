@@ -26,6 +26,13 @@
 			sim.injectSpecies(e.detail.symbol, e.detail.count);
 		}
 	}
+
+	function handleHeat(e: CustomEvent<{ factor: number }>) {
+		const sim = chemistryCanvas?.getSimulation();
+		if (sim) {
+			sim.heat(e.detail.factor);
+		}
+	}
 </script>
 
 <svelte:head>
@@ -37,7 +44,7 @@
 		<ChemistryCanvas bind:this={chemistryCanvas} />
 	</div>
 	<aside class="side-panel">
-		<ChemistryControlPanel on:reset={handleReset} on:inject={handleInject} />
+		<ChemistryControlPanel on:reset={handleReset} on:inject={handleInject} on:heat={handleHeat} />
 		<ChemistryStatsDisplay />
 		<ChemistryLiveCharts />
 		<ChemistryExportButtons />

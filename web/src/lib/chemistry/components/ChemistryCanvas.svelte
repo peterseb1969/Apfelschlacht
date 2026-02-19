@@ -33,10 +33,10 @@
 			simulation.motionRange = $config.motionRange;
 			simulation.gravity = $config.gravity;
 			simulation.gravityOn = $config.gravityOn;
-			simulation.setTemperature($config.temperature);
 			simulation.setEffectiveWidth($config.effectiveWidth);
 			simulation.setForwardRate($config.forwardRateOverride);
 			simulation.setReverseRate($config.reverseRateOverride);
+			simulation.setStepRates($config.stepRateOverrides);
 			bgGrey = $config.bgGrey;
 		});
 

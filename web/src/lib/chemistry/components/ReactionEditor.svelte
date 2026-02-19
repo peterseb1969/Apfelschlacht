@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
-	import type { ReactionDefinition, ReactionCategory, SpeciesDefinition } from '../engine/types';
+	import type { ReactionDefinition, ReactionCategory, ReactionStep, SpeciesDefinition } from '../engine/types';
 
 	interface Props {
 		reaction: ReactionDefinition | null;
@@ -24,21 +24,58 @@
 	let reversible = $state(r?.reversible ?? true);
 	let forwardRate = $state(r?.forwardRate ?? 0.5);
 	let reverseRate = $state(r?.reverseRate ?? 0.1);
+	let multiStep = $state(!!(r?.steps && r.steps.length > 0));
 
 	// Species table — deep-clone to avoid mutating the original
 	const initSpecies: (SpeciesDefinition & { _key: number })[] = r
-		? r.species.map((s, i) => ({ ...s, _key: i }))
+		? r.species.map((s, i) => ({ ...s, pinned: s.pinned ?? false, _key: i }))
 		: [
-			{ symbol: '', color: '#e74c3c', radius: 8, defaultCount: 30, role: 'reactant' as const, _key: 0 },
-			{ symbol: '', color: '#3498db', radius: 8, defaultCount: 0, role: 'product' as const, _key: 1 }
+			{ symbol: '', color: '#e74c3c', radius: 8, defaultCount: 30, role: 'reactant' as const, pinned: false, _key: 0 },
+			{ symbol: '', color: '#3498db', radius: 8, defaultCount: 0, role: 'product' as const, pinned: false, _key: 1 }
 		];
 	let species = $state(initSpecies);
 	let nextKey = $state(initSpecies.length);
 
+	// Steps state for multi-step mode
+	interface StepRow {
+		_key: number;
+		reactant1: string;
+		reactant2: string;
+		product1: string;
+		product2: string;
+		equation: string;
+		forwardRate: number;
+		reverseRate: number;
+		reversible: boolean;
+	}
+
+	function initStepFromDef(step: ReactionStep, key: number): StepRow {
+		return {
+			_key: key,
+			reactant1: step.reactants[0] ?? '',
+			reactant2: step.reactants[1] ?? '',
+			product1: step.products[0] ?? '',
+			product2: step.products[1] ?? '',
+			equation: step.equation ?? '',
+			forwardRate: step.forwardRate,
+			reverseRate: step.reverseRate,
+			reversible: step.reversible
+		};
+	}
+
+	const initSteps: StepRow[] = r?.steps
+		? r.steps.map((s, i) => initStepFromDef(s, i))
+		: [];
+	let steps = $state(initSteps);
+	let nextStepKey = $state(initSteps.length);
+
 	let error = $state('');
 
+	// Available symbols for step dropdowns
+	let availableSymbols = $derived(species.map(s => s.symbol.trim()).filter(s => s));
+
 	function addSpecies() {
-		species = [...species, { symbol: '', color: '#888888', radius: 8, defaultCount: 0, role: 'reactant', _key: nextKey }];
+		species = [...species, { symbol: '', color: '#888888', radius: 8, defaultCount: 0, role: 'reactant', pinned: false, _key: nextKey }];
 		nextKey++;
 	}
 
@@ -46,18 +83,56 @@
 		species = species.filter(s => s._key !== key);
 	}
 
+	function addStep() {
+		steps = [...steps, {
+			_key: nextStepKey,
+			reactant1: '', reactant2: '',
+			product1: '', product2: '',
+			equation: '',
+			forwardRate: 0.5, reverseRate: 0.1,
+			reversible: true
+		}];
+		nextStepKey++;
+	}
+
+	function removeStep(key: number) {
+		steps = steps.filter(s => s._key !== key);
+	}
+
+	function generateStepEquation(step: StepRow): string {
+		const lhs = [step.reactant1, step.reactant2].filter(Boolean).join(' + ');
+		const rhs = [step.product1, step.product2].filter(Boolean).join(' + ');
+		const arrow = step.reversible ? ' \u21CC ' : ' \u2192 ';
+		return lhs + arrow + rhs;
+	}
+
 	function validate(): string | null {
 		if (!name.trim()) return 'Name darf nicht leer sein.';
-		if (forwardRate <= 0) return 'Hin-Rate muss > 0 sein.';
-		const reactants = species.filter(s => s.role === 'reactant');
-		const products = species.filter(s => s.role === 'product');
-		if (reactants.length === 0) return 'Mindestens 1 Edukt nötig.';
-		if (products.length === 0) return 'Mindestens 1 Produkt nötig.';
-		if (reactants.length > 2) return 'Maximal 2 Edukte erlaubt.';
-		if (products.length > 2) return 'Maximal 2 Produkte erlaubt.';
 		const symbols = species.map(s => s.symbol.trim());
 		if (symbols.some(s => !s)) return 'Alle Spezies brauchen ein Symbol.';
 		if (new Set(symbols).size !== symbols.length) return 'Spezies-Symbole müssen eindeutig sein.';
+
+		if (multiStep) {
+			if (steps.length === 0) return 'Mindestens 1 Schritt nötig.';
+			for (let i = 0; i < steps.length; i++) {
+				const st = steps[i];
+				if (!st.reactant1) return `Schritt ${i + 1}: Mindestens 1 Edukt nötig.`;
+				if (!st.product1) return `Schritt ${i + 1}: Mindestens 1 Produkt nötig.`;
+				const stepSymbols = [st.reactant1, st.reactant2, st.product1, st.product2].filter(Boolean);
+				for (const sym of stepSymbols) {
+					if (!symbols.includes(sym)) return `Schritt ${i + 1}: "${sym}" ist nicht in der Spezies-Liste.`;
+				}
+				if (st.forwardRate <= 0) return `Schritt ${i + 1}: Hin-Rate muss > 0 sein.`;
+			}
+		} else {
+			if (forwardRate <= 0) return 'Hin-Rate muss > 0 sein.';
+			const reactants = species.filter(s => s.role === 'reactant');
+			const products = species.filter(s => s.role === 'product');
+			if (reactants.length === 0) return 'Mindestens 1 Edukt nötig.';
+			if (products.length === 0) return 'Mindestens 1 Produkt nötig.';
+			if (reactants.length > 2) return 'Maximal 2 Edukte erlaubt.';
+			if (products.length > 2) return 'Maximal 2 Produkte erlaubt.';
+		}
 		return null;
 	}
 
@@ -83,12 +158,28 @@
 			description: description.trim(),
 			descriptionEn: descriptionEn.trim(),
 			species: cleanSpecies,
-			reactants: cleanSpecies.filter(s => s.role === 'reactant').map(s => s.symbol),
-			products: cleanSpecies.filter(s => s.role === 'product').map(s => s.symbol),
-			forwardRate,
-			reverseRate: reversible ? reverseRate : 0,
-			reversible
+			reactants: multiStep ? [] : cleanSpecies.filter(s => s.role === 'reactant').map(s => s.symbol),
+			products: multiStep ? [] : cleanSpecies.filter(s => s.role === 'product').map(s => s.symbol),
+			forwardRate: multiStep ? 0 : forwardRate,
+			reverseRate: multiStep ? 0 : (reversible ? reverseRate : 0),
+			reversible: multiStep ? false : reversible
 		};
+
+		if (multiStep) {
+			result.steps = steps.map(st => {
+				const reactants = [st.reactant1, st.reactant2].filter(Boolean);
+				const products = [st.product1, st.product2].filter(Boolean);
+				return {
+					reactants,
+					products,
+					forwardRate: st.forwardRate,
+					reverseRate: st.reversible ? st.reverseRate : 0,
+					reversible: st.reversible,
+					equation: st.equation.trim() || generateStepEquation(st)
+				} satisfies ReactionStep;
+			});
+		}
+
 		onSave(result);
 	}
 
@@ -126,6 +217,7 @@
 					<option value="equilibrium">Gleichgewicht</option>
 					<option value="acid-base">Säure-Base</option>
 					<option value="exchange">Austausch</option>
+					<option value="catalysis">Katalyse</option>
 				</select>
 			</label>
 			<label>
@@ -142,19 +234,27 @@
 			</label>
 			<label>
 				<span class="checkbox-row">
-					<input type="checkbox" bind:checked={reversible} />
-					Reversibel
+					<input type="checkbox" bind:checked={multiStep} />
+					Mehrstufig
 				</span>
 			</label>
-			<label>
-				Hin-Rate
-				<input type="number" bind:value={forwardRate} min={0.01} max={5} step={0.01} />
-			</label>
-			{#if reversible}
+			{#if !multiStep}
 				<label>
-					Rück-Rate
-					<input type="number" bind:value={reverseRate} min={0} max={5} step={0.01} />
+					<span class="checkbox-row">
+						<input type="checkbox" bind:checked={reversible} />
+						Reversibel
+					</span>
 				</label>
+				<label>
+					Hin-Rate
+					<input type="number" bind:value={forwardRate} min={0.01} max={5} step={0.01} />
+				</label>
+				{#if reversible}
+					<label>
+						Rück-Rate
+						<input type="number" bind:value={reverseRate} min={0} max={5} step={0.01} />
+					</label>
+				{/if}
 			{/if}
 		</div>
 
@@ -166,6 +266,7 @@
 				<span>Radius</span>
 				<span>Anzahl</span>
 				<span>Rolle</span>
+				<span>Fest</span>
 				<span></span>
 			</div>
 			{#each species as sp (sp._key)}
@@ -178,11 +279,68 @@
 						<option value="reactant">Edukt</option>
 						<option value="product">Produkt</option>
 					</select>
+					<input type="checkbox" bind:checked={sp.pinned} class="sp-pinned" />
 					<button class="delete-btn" onclick={() => removeSpecies(sp._key)} title="Entfernen">&times;</button>
 				</div>
 			{/each}
 		</div>
 		<button class="add-species-btn" onclick={addSpecies}>+ Spezies hinzufügen</button>
+
+		{#if multiStep}
+			<h3>Schritte</h3>
+			<div class="steps-section">
+				{#each steps as step (step._key)}
+					<div class="step-card">
+						<div class="step-top">
+							<div class="step-selects">
+								<select bind:value={step.reactant1} class="step-select">
+									<option value="">Edukt 1</option>
+									{#each availableSymbols as sym}
+										<option value={sym}>{sym}</option>
+									{/each}
+								</select>
+								<select bind:value={step.reactant2} class="step-select">
+									<option value="">(Edukt 2)</option>
+									{#each availableSymbols as sym}
+										<option value={sym}>{sym}</option>
+									{/each}
+								</select>
+								<span class="step-arrow">{step.reversible ? '\u21CC' : '\u2192'}</span>
+								<select bind:value={step.product1} class="step-select">
+									<option value="">Produkt 1</option>
+									{#each availableSymbols as sym}
+										<option value={sym}>{sym}</option>
+									{/each}
+								</select>
+								<select bind:value={step.product2} class="step-select">
+									<option value="">(Produkt 2)</option>
+									{#each availableSymbols as sym}
+										<option value={sym}>{sym}</option>
+									{/each}
+								</select>
+							</div>
+							<button class="delete-btn" onclick={() => removeStep(step._key)} title="Schritt entfernen">&times;</button>
+						</div>
+						<div class="step-bottom">
+							<input type="text" bind:value={step.equation} placeholder="Gleichung (auto)" class="step-eq-input" />
+							<label class="step-rate">
+								Hin
+								<input type="number" bind:value={step.forwardRate} min={0.01} max={5} step={0.01} />
+							</label>
+							<label class="step-rate">
+								<span class="checkbox-row-inline">
+									<input type="checkbox" bind:checked={step.reversible} />
+									Rück
+								</span>
+								<input type="number" bind:value={step.reverseRate} min={0} max={5} step={0.01}
+									disabled={!step.reversible} />
+							</label>
+						</div>
+					</div>
+				{/each}
+			</div>
+			<button class="add-species-btn" onclick={addStep}>+ Schritt hinzufügen</button>
+		{/if}
 
 		<div class="modal-buttons">
 			<button class="save-btn" onclick={handleSave}>Speichern</button>
@@ -208,7 +366,7 @@
 		border: 1px solid #555;
 		border-radius: 8px;
 		padding: 24px;
-		width: 600px;
+		width: 700px;
 		max-width: 95vw;
 		max-height: 90vh;
 		overflow-y: auto;
@@ -277,7 +435,7 @@
 
 	.species-header {
 		display: grid;
-		grid-template-columns: 2fr 40px 60px 60px 90px 30px;
+		grid-template-columns: 2fr 40px 60px 60px 90px 32px 30px;
 		gap: 6px;
 		font-size: 0.75rem;
 		color: #888;
@@ -286,7 +444,7 @@
 
 	.species-row {
 		display: grid;
-		grid-template-columns: 2fr 40px 60px 60px 90px 30px;
+		grid-template-columns: 2fr 40px 60px 60px 90px 32px 30px;
 		gap: 6px;
 		align-items: center;
 	}
@@ -336,6 +494,11 @@
 		font-size: 0.8rem;
 	}
 
+	.sp-pinned {
+		justify-self: center;
+		cursor: pointer;
+	}
+
 	.delete-btn {
 		background: none;
 		border: none;
@@ -364,6 +527,108 @@
 	.add-species-btn:hover {
 		background: #333;
 		color: #eee;
+	}
+
+	/* Steps section */
+	.steps-section {
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+	}
+
+	.step-card {
+		background: #262626;
+		border: 1px solid #444;
+		border-radius: 6px;
+		padding: 8px 10px;
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+	}
+
+	.step-top {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+	}
+
+	.step-selects {
+		display: flex;
+		align-items: center;
+		gap: 4px;
+		flex: 1;
+		flex-wrap: wrap;
+	}
+
+	.step-select {
+		padding: 3px 4px;
+		background: #2a2a2a;
+		color: #eee;
+		border: 1px solid #555;
+		border-radius: 4px;
+		font-size: 0.8rem;
+		min-width: 0;
+		flex: 1;
+	}
+
+	.step-arrow {
+		font-size: 1.1rem;
+		color: #aaa;
+		flex-shrink: 0;
+		padding: 0 2px;
+	}
+
+	.step-bottom {
+		display: flex;
+		align-items: flex-end;
+		gap: 8px;
+	}
+
+	.step-eq-input {
+		flex: 1;
+		padding: 3px 6px;
+		background: #2a2a2a;
+		color: #eee;
+		border: 1px solid #555;
+		border-radius: 4px;
+		font-size: 0.8rem;
+		font-family: 'Times New Roman', serif;
+	}
+
+	.step-rate {
+		display: flex;
+		flex-direction: column;
+		font-size: 0.75rem;
+		gap: 2px;
+		color: #aaa;
+	}
+
+	.step-rate input[type="number"] {
+		width: 60px;
+		padding: 3px 4px;
+		background: #2a2a2a;
+		color: #eee;
+		border: 1px solid #555;
+		border-radius: 4px;
+		font-size: 0.8rem;
+		text-align: right;
+		-moz-appearance: textfield;
+	}
+
+	.step-rate input[type="number"]::-webkit-inner-spin-button,
+	.step-rate input[type="number"]::-webkit-outer-spin-button {
+		-webkit-appearance: none;
+		margin: 0;
+	}
+
+	.step-rate input[type="number"]:disabled {
+		opacity: 0.4;
+	}
+
+	.checkbox-row-inline {
+		display: flex;
+		align-items: center;
+		gap: 4px;
 	}
 
 	.modal-buttons {

@@ -10,6 +10,7 @@ export class ChemistryParticle {
 	radius: number;
 	mass: number;
 	isProduct: boolean;
+	pinned: boolean;
 	bindingEnergy = 0;
 	rotation = 0;
 	angularVelocity = 0;
@@ -19,7 +20,8 @@ export class ChemistryParticle {
 		x: number, y: number,
 		vx: number, vy: number,
 		radius: number, mass: number,
-		isProduct: boolean
+		isProduct: boolean,
+		pinned = false
 	) {
 		this.id = nextId++;
 		this.species = species;
@@ -30,6 +32,7 @@ export class ChemistryParticle {
 		this.radius = radius;
 		this.mass = mass;
 		this.isProduct = isProduct;
+		this.pinned = pinned;
 	}
 
 	static resetIdCounter(): void {

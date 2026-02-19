@@ -1,4 +1,4 @@
-# Apfelschlacht & Steady State
+# Apfelschlacht, Steady State & Chemie
 
 Eine Sammlung interaktiver Simulationen, gebaut mit SvelteKit. Gleichgewichtsdynamik in kompetitiven und chemischen Systemen zum Anfassen. Urspruenglich ein Python-Arcade-Projekt, jetzt vollstaendig als moderne Web-Anwendung umgesetzt.
 
@@ -125,6 +125,83 @@ Alle anderen Kollisionen (X-X, Y-Y, Z-Z, X-Z, Y-S usw.) sind vollstaendig elasti
 
 ---
 
+### Chemie (Reaktionssimulator)
+
+Eine universelle Partikelsimulation fuer chemische Reaktionen. Waehle aus 18 vordefinierten Reaktionen oder erstelle eigene mit dem Reaktionseditor. Partikel fliegen durch einen Behaelter, kollidieren, reagieren und zerfallen — mit Echtzeit-Diagrammen fuer Spezies-Bestand, Druck und Temperatur.
+
+**Vordefinierte Reaktionen (18):**
+
+| Kategorie | Reaktionen |
+|-----------|-----------|
+| Komplexbildung | Fe³⁺/SCN⁻ (blutroter Komplex), Haemoglobin-O₂, Triiodid, AgCl-Faellung |
+| Dissoziation | N₂O₄ ⇌ 2 NO₂, PCl₅ ⇌ PCl₃ + Cl₂, CaCO₃ ⇌ CaO + CO₂ |
+| Gleichgewicht | H₂ + I₂ ⇌ 2 HI |
+| Saeure-Base | Essigsaeure-Dissoziation, Wasser-Autoprotolyse, Ammoniak in Wasser |
+| Austausch | HCl + NaOH → NaCl + H₂O, Wassergas-Shift (CO + H₂O ⇌ CO₂ + H₂) |
+| Katalyse / Ketten | Haber-Bosch (7 Schritte), H₂/Br₂-Kette (3 Schritte), CH₄-Chlorierung (4 Schritte), H₂-Verbrennung (4 Schritte), Ozonabbau durch Cl (3 Schritte) |
+
+**Mehrstufige Reaktionen:**
+
+Fuenf Reaktionen verwenden mehrstufige Mechanismen mit einzeln einstellbaren Raten:
+
+- **Haber-Bosch** — 7-stufige Oberflaechenkatalyse an Eisenkatalysator-Plaetzen (S\*). Gasfoermiges H₂ und N₂ adsorbieren an wandgebundene Katalysatorplaetze, durchlaufen schrittweise Hydrierung und desorbieren als NH₃. Schritt 3 (N≡N-Bindungsbruch) ist geschwindigkeitsbestimmend. Verwendet den Langmuir-Hinshelwood-Mechanismus: gebundene Spezies reagieren untereinander und mit Gasteilchen, die mit der Wand kollidieren.
+- **H₂/Br₂-Kette** — Radikalkette: Br₂-Homolyse → Kettenfortpflanzung ueber Br• und H• → Rekombinations-Abbruch.
+- **CH₄-Chlorierung** — Radikalische Substitution: Cl₂-Homolyse startet eine Kette, die CH₃Cl und HCl erzeugt. Methylradikal-Rekombination bildet Ethan (C₂H₆) als Nebenprodukt.
+- **H₂-Verbrennung** — Kettenverzweigende Explosion: ein Radikal erzeugt zwei neue. OH•, H• und O• vermehren sich exponentiell.
+- **Ozonabbau** — Katalytischer Zyklus: Cl• zerstoert O₃ und wird regeneriert. Demonstriert homogene Gasphasenkatalyse.
+
+**Reaktionseditor:**
+
+Erstelle und bearbeite eigene Reaktionen ueber einen umfangreichen Modal-Editor:
+
+- **Spezies-Tabelle** — Definiere Partikeltypen mit Symbol, Farbe, Radius, Startanzahl, Rolle (Edukt/Produkt) und Fest-Flag. Feste Spezies sind an die Behaelterwand gebunden (dargestellt als Rechtecke).
+- **Einstufiger Modus** — Setze eine globale Hin- und Rueckrate mit Reversibilitaets-Toggle.
+- **Mehrstufiger Modus** — Aktiviere "Mehrstufig", um einzelne Reaktionsschritte zu definieren. Jeder Schritt hat eigene Edukte, Produkte, Hin-/Rueckraten, Reversibilitaet und Gleichungsbezeichnung. Die Edukt-/Produkt-Dropdowns werden aus den oben definierten Spezies befuellt.
+- **Kategorien** — Komplexbildung, Dissoziation, Gleichgewicht, Saeure-Base, Austausch, Katalyse.
+- **Persistenz** — Eigene Reaktionen werden im localStorage gespeichert und ueberleben Seitenaktualisierungen. Vordefinierte Reaktionen koennen nicht geloescht werden.
+
+**Physik:**
+- Elastische Stoesse mit masseabhaengigem Impulsaustausch
+- Inelastische Reaktionen verbrauchen kinetische Energie (Bindungsenergie), die beim Zerfall zurueckgegeben wird
+- Emergente Temperatur: T wird aus der tatsaechlichen kinetischen Energie der Gasteilchen berechnet (T = Gesamt-KE / N), nicht extern gesetzt
+- Heizen/Kuehlen-Buttons skalieren alle Partikelgeschwindigkeiten und verschieben die Temperatur
+- Injektionsgeschwindigkeit entspricht der aktuellen thermischen Geschwindigkeit
+- Wandgebundene (feste) Spezies verteilen sich auf alle vier Waende und werden als farbige Rechtecke dargestellt
+- Optionale Schwerkraft mit einstellbarer Staerke
+- Einstellbares Behaeltervolumen (effektive Breite)
+
+**Bedienelemente (Seitenleiste):**
+
+| Bedienelement | Wirkung |
+|---------------|---------|
+| Start / Pause | Simulation starten oder anhalten |
+| Reset | Neustart mit aktuellen Einstellungen |
+| Reaktionsauswahl | Vordefinierte oder eigene Reaktion waehlen |
+| Neu / Bearbeiten / Loeschen | Reaktionseditor oeffnen oder eigene Reaktion loeschen |
+| Hin- / Rueckrate | Globale Raten-Ueberschreibung (einstufige Reaktionen) |
+| Schrittweise Raten-Regler | Individuelle Hin-/Rueckrate je Schritt (mehrstufige Reaktionen) |
+| Raten zuruecksetzen | Urspruengliche Reaktionsraten wiederherstellen |
+| Spezies injizieren | Partikel einer gewaehlten Spezies zur Laufzeit hinzufuegen |
+| Heizen / Kuehlen | Partikelgeschwindigkeiten mit x1,5 oder x0,67 skalieren |
+| Volumen | Effektive Behaelterbreite anpassen |
+| Hertz | Simulationsfrequenz |
+| Schwerkraft + Staerke | Schwerkraft nach unten aktivieren |
+| GD-Fenster | Gleitender Durchschnitt fuer Diagramme |
+| Hintergrund | Helligkeit des Canvas-Hintergrunds |
+
+**Diagramme:**
+- **Spezies-Bestand** — Live-Liniendiagramm mit Partikelanzahl je Spezies und gleitendem Durchschnitt. Klick oeffnet vergroesserte Ansicht (Datensatz-Sichtbarkeit bleibt erhalten).
+- **Druck** — Live-Liniendiagramm des Drucks (Wandkollisions-Frequenz).
+
+**Darstellung:**
+- Gasteilchen: farbige gefuellte Kreise mit Symbol-Beschriftung
+- Feste (wandgebundene) Teilchen: farbige gefuellte Rechtecke einheitlicher Groesse, auf allen vier Waenden verteilt
+- Legende verwendet Kreise fuer Gasteilchen und abgerundete Rechtecke fuer feste Spezies
+
+**Export:** CSV- und JSON-Export der Zeitreihendaten (Spezies-Bestand, Druck, Temperatur, Volumen).
+
+---
+
 ## Ausfuehren
 
 ### Web-App (empfohlen)
@@ -162,6 +239,7 @@ web/src/
     +page.svelte                 # Startseite
     apfelschlacht/+page.svelte   # Apfelschlacht-Simulation
     steady-state/+page.svelte    # Partikelsimulation
+    chemistry/+page.svelte       # Chemie-Reaktionssimulator
   lib/
     engine/                      # Apfelschlacht Simulations-Engine
     render/                      # Apfelschlacht Canvas-Renderer
@@ -172,6 +250,12 @@ web/src/
       render/                    # Partikel Canvas-Renderer
       stores/                    # Partikel State-Stores
       components/                # Partikel UI-Komponenten
+    chemistry/
+      engine/                    # Chemie-Engine (Reaktionen, Kollisionen, Zerfall)
+      render/                    # Chemie Canvas-Renderer (Kreise + wandgebundene Rechtecke)
+      stores/                    # Chemie State-Stores (Konfiguration, Diagrammdaten, Reaktionsliste)
+      components/                # Chemie UI (Bedienfeld, Diagramme, Editor, Statistik, Export)
+      data/                      # Vordefinierte Reaktionsbibliothek (18 Reaktionen)
 ```
 
 ## Credits

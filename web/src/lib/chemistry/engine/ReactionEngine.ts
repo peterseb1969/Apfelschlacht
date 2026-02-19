@@ -1,15 +1,21 @@
-import type { ReactionDefinition, CollisionRule, DecayRule } from './types';
+import type { ReactionDefinition, ReactionStep, CollisionRule, DecayRule } from './types';
 
 export class ReactionEngine {
-	collisionRules = new Map<string, CollisionRule>();
+	collisionRules = new Map<string, CollisionRule[]>();
 	decayRules: DecayRule[] = [];
 
 	constructor(reaction: ReactionDefinition) {
-		this.buildRules(reaction);
+		if (reaction.steps && reaction.steps.length > 0) {
+			for (const step of reaction.steps) {
+				this.buildStepRules(step);
+			}
+		} else {
+			this.buildStepRules(reaction);
+		}
 	}
 
-	private buildRules(reaction: ReactionDefinition): void {
-		const { reactants, products, forwardRate, reverseRate, reversible } = reaction;
+	private buildStepRules(step: Pick<ReactionStep, 'reactants' | 'products' | 'forwardRate' | 'reverseRate' | 'reversible'>): void {
+		const { reactants, products, forwardRate, reverseRate, reversible } = step;
 
 		if (reactants.length === 2 && products.length === 1) {
 			// A + B -> C  (merge)
@@ -34,12 +40,34 @@ export class ReactionEngine {
 
 	private addCollisionRule(a: string, b: string, products: string[], probability: number): void {
 		const key = this.makeKey(a, b);
-		this.collisionRules.set(key, { speciesA: a, speciesB: b, products: [...products], probability });
+		let arr = this.collisionRules.get(key);
+		if (!arr) {
+			arr = [];
+			this.collisionRules.set(key, arr);
+		}
+		arr.push({ speciesA: a, speciesB: b, products: [...products], probability });
 	}
 
 	matchCollision(speciesA: string, speciesB: string): CollisionRule | null {
 		const key = this.makeKey(speciesA, speciesB);
-		return this.collisionRules.get(key) ?? null;
+		const rules = this.collisionRules.get(key);
+		if (!rules || rules.length === 0) return null;
+
+		if (rules.length === 1) {
+			return Math.random() < rules[0].probability ? rules[0] : null;
+		}
+
+		// Stochastic selection weighted by probability
+		const totalP = rules.reduce((sum, r) => sum + r.probability, 0);
+		const roll = Math.random();
+		if (roll >= totalP) return null; // elastic collision
+
+		let cumulative = 0;
+		for (const rule of rules) {
+			cumulative += rule.probability;
+			if (roll < cumulative) return rule;
+		}
+		return rules[rules.length - 1];
 	}
 
 	private makeKey(a: string, b: string): string {

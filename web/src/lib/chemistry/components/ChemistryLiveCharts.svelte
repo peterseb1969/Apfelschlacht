@@ -18,6 +18,9 @@
 	let modalChart: Chart | null = null;
 	let modalTitle = $state('');
 
+	// Persist hidden datasets across modal open/close cycles (keyed by label)
+	let hiddenDatasets = new Set<string>();
+
 	function legendLabels(fontSize: number, lineWidth: number) {
 		return {
 			color: '#ccc',
@@ -161,11 +164,27 @@
 				options: { ...bigChartOpts, plugins: { ...bigChartOpts.plugins, title: { display: true, text: 'Spezies-Bestand', color: '#ddd', font: { size: 18 } } } },
 				plugins: [stableScalePlugin]
 			});
+			// Restore saved visibility
+			for (let i = 0; i < modalChart.data.datasets.length; i++) {
+				const label = modalChart.data.datasets[i].label ?? '';
+				if (hiddenDatasets.has(label)) {
+					modalChart.setDatasetVisibility(i, false);
+				}
+			}
 			syncModalChart();
 		});
 	}
 
 	function closeModal() {
+		// Save visibility state before destroying
+		if (modalChart) {
+			hiddenDatasets = new Set<string>();
+			for (let i = 0; i < modalChart.data.datasets.length; i++) {
+				if (!modalChart.isDatasetVisible(i)) {
+					hiddenDatasets.add(modalChart.data.datasets[i].label ?? '');
+				}
+			}
+		}
 		modalOpen = false;
 		modalChart?.destroy();
 		modalChart = null;
@@ -204,6 +223,7 @@
 
 		countChart.data.datasets = makeCountDatasets(reaction);
 		countChart.update('none');
+		hiddenDatasets = new Set<string>();
 	}
 
 	function updateAllCharts() {
@@ -232,9 +252,7 @@
 		// Pressure chart
 		if (pressureChart) {
 			pressureChart.data.labels = labels;
-			const fullP = data.map(d => d.pressure);
-			pressureChart.data.datasets[0].data = fullP.slice(-CHART_WINDOW);
-			pressureChart.data.datasets[1].data = windowedMA(fullP, w);
+			pressureChart.data.datasets[0].data = data.map(d => d.pressure).slice(-CHART_WINDOW);
 			pressureChart.update('none');
 		}
 
@@ -256,8 +274,7 @@
 			data: {
 				labels: [],
 				datasets: [
-					{ label: 'Druck', data: [], borderColor: '#e74c3c', borderWidth: 2, pointRadius: 0, fill: false },
-					{ label: 'Druck (GD)', data: [] as (number | null)[], borderColor: '#e74c3c', borderWidth: 2.5, borderDash: [5, 3], pointRadius: 0, fill: false }
+					{ label: 'Druck', data: [], borderColor: '#e74c3c', borderWidth: 2, pointRadius: 0, fill: false }
 				]
 			},
 			options: { ...smallChartOpts, plugins: { ...smallChartOpts.plugins, title: { display: true, text: 'Druck', color: '#ddd', font: { size: 12 } } } },

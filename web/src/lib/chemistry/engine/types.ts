@@ -4,9 +4,19 @@ export interface SpeciesDefinition {
 	radius: number;
 	defaultCount: number;
 	role: 'reactant' | 'product';
+	pinned?: boolean;
 }
 
-export type ReactionCategory = 'dissociation' | 'complexation' | 'acid-base' | 'equilibrium' | 'exchange';
+export type ReactionCategory = 'dissociation' | 'complexation' | 'acid-base' | 'equilibrium' | 'exchange' | 'catalysis';
+
+export interface ReactionStep {
+	reactants: string[];
+	products: string[];
+	forwardRate: number;
+	reverseRate: number;
+	reversible: boolean;
+	equation?: string;
+}
 
 export interface ReactionDefinition {
 	id: string;
@@ -22,6 +32,7 @@ export interface ReactionDefinition {
 	forwardRate: number;
 	reverseRate: number;
 	reversible: boolean;
+	steps?: ReactionStep[];
 }
 
 export interface CollisionRule {
@@ -48,6 +59,7 @@ export interface ChemistryParticleState {
 	mass: number;
 	rotation: number;
 	isProduct: boolean;
+	pinned: boolean;
 }
 
 export interface InjectorState {

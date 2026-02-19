@@ -1,5 +1,5 @@
 import { ChemistryParticle } from './ChemistryParticle';
-import { INJECT_SPREAD, INJECT_SPEED_FACTOR } from './constants';
+import { INJECT_SPREAD } from './constants';
 import type { SpeciesDefinition, InjectorState } from './types';
 
 export class Injector {
@@ -16,14 +16,14 @@ export class Injector {
 		position: number,
 		species: SpeciesDefinition,
 		count: number,
-		motionRange: number,
+		speed: number,
 		rate = 20
 	) {
 		this.side = side;
 		this.position = position;
 		this.species = species;
 		this.remaining = count;
-		this.speed = motionRange * INJECT_SPEED_FACTOR;
+		this.speed = speed;
 		this.rate = rate;
 	}
 

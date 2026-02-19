@@ -1,4 +1,4 @@
-# Apfelschlacht & Steady State
+# Apfelschlacht, Steady State & Chemie
 
 A collection of interactive simulations built with SvelteKit, exploring steady-state dynamics in competitive and chemical systems. Originally a Python Arcade project, now fully rewritten as a modern web application.
 
@@ -125,6 +125,83 @@ All other collisions (X-X, Y-Y, Z-Z, X-Z, Y-S, etc.) are fully elastic.
 
 ---
 
+### Chemie (Chemistry Reaction Simulator)
+
+A general-purpose particle simulation for chemical reactions. Choose from 18 built-in reactions or create your own with the reaction editor. Particles bounce around a container, collide, react, and decay — producing real-time charts of species counts, pressure, and temperature.
+
+**Built-in Reactions (18):**
+
+| Category | Reactions |
+|----------|-----------|
+| Complexation | Fe³⁺/SCN⁻ (blood-red complex), Hemoglobin-O₂, Triiodide, AgCl precipitation |
+| Dissociation | N₂O₄ ⇌ 2 NO₂, PCl₅ ⇌ PCl₃ + Cl₂, CaCO₃ ⇌ CaO + CO₂ |
+| Equilibrium | H₂ + I₂ ⇌ 2 HI |
+| Acid-Base | Acetic acid dissociation, Water autoprotolysis, Ammonia in water |
+| Exchange | HCl + NaOH → NaCl + H₂O, Water-gas shift (CO + H₂O ⇌ CO₂ + H₂) |
+| Catalysis / Chain | Haber-Bosch (7 steps), H₂/Br₂ chain (3 steps), CH₄ chlorination (4 steps), H₂ combustion (4 steps), Ozone depletion by Cl (3 steps) |
+
+**Multi-Step Reactions:**
+
+Five reactions use multi-step mechanisms with individually tunable rates:
+
+- **Haber-Bosch** — 7-step surface catalysis on iron catalyst sites (S\*). Gas-phase H₂ and N₂ adsorb onto wall-bound catalyst sites, undergo stepwise hydrogenation, and desorb as NH₃. Step 3 (N≡N bond breaking) is rate-limiting. Uses the Langmuir-Hinshelwood mechanism: pinned (wall-bound) species react with each other and with gas-phase particles that collide with the wall.
+- **H₂/Br₂ chain** — Radical chain: Br₂ homolysis → propagation via Br• and H• → recombination termination.
+- **CH₄ chlorination** — Radical substitution: Cl₂ homolysis starts a chain producing CH₃Cl and HCl. Methyl radical recombination forms ethane (C₂H₆) as a side product.
+- **H₂ combustion** — Chain-branching explosion: one radical produces two. OH•, H•, and O• multiply exponentially.
+- **Ozone depletion** — Catalytic cycle: Cl• destroys O₃ and is regenerated, demonstrating homogeneous gas-phase catalysis.
+
+**Reaction Editor:**
+
+Create and edit custom reactions via a full-featured modal editor:
+
+- **Species table** — Define particle types with symbol, color, radius, initial count, role (reactant/product), and pinned flag. Pinned species are bound to the container walls (rendered as rectangles).
+- **Single-step mode** — Set a global forward and reverse rate with a reversibility toggle.
+- **Multi-step mode** — Toggle "Mehrstufig" (multi-step) to define individual reaction steps. Each step has its own reactants, products, forward/reverse rates, reversibility, and equation label. Reactant/product dropdowns are populated from the species defined above.
+- **Categories** — Complexation, dissociation, equilibrium, acid-base, exchange, catalysis.
+- **Persistence** — Custom reactions are saved to localStorage and survive page reloads. Built-in reactions cannot be deleted.
+
+**Physics:**
+- Elastic collisions with mass-dependent momentum transfer
+- Inelastic reactions consume kinetic energy (binding energy), which is restored on decay
+- Emergent temperature: T is computed from actual kinetic energy of gas-phase particles (T = total KE / N), not set externally
+- Heat/Cool buttons scale all particle velocities, shifting the temperature
+- Injection velocity matches current thermal speed
+- Wall-bound (pinned) species are distributed around all four walls and rendered as colored rectangles
+- Optional gravity with configurable strength
+- Adjustable container volume (effective width)
+
+**Controls (sidebar):**
+
+| Control | Effect |
+|---------|--------|
+| Start / Pause | Run or pause the simulation |
+| Reset | Restart with current settings |
+| Reaction selector | Choose a built-in or custom reaction |
+| New / Edit / Delete | Open the reaction editor or delete a custom reaction |
+| Forward / Reverse rate | Global rate override (single-step reactions) |
+| Per-step rate sliders | Individual forward/reverse rate for each step (multi-step reactions) |
+| Reset rates | Restore original reaction rates |
+| Inject species | Add particles of a chosen species at runtime |
+| Heat / Cool | Scale particle velocities by x1.5 or x0.67 |
+| Volume | Adjust effective container width |
+| Hertz | Simulation tick rate |
+| Gravity toggle + strength | Enable downward gravity |
+| MA Window | Moving average smoothing for charts |
+| Background grey | Canvas background brightness |
+
+**Charts:**
+- **Species Count** — Live line chart of each species' particle count with moving average overlay. Click to expand in a modal (dataset visibility is preserved across open/close).
+- **Pressure** — Live line chart of pressure (wall-collision frequency).
+
+**Rendering:**
+- Gas-phase particles: colored filled circles with symbol labels
+- Pinned (wall-bound) particles: colored filled rectangles of uniform size, distributed around all four walls
+- Legend uses circles for gas-phase species and rounded rectangles for pinned species
+
+**Export:** CSV and JSON export of time-series data (species counts, pressure, temperature, volume).
+
+---
+
 ## Running
 
 ### Web App (recommended)
@@ -162,6 +239,7 @@ web/src/
     +page.svelte                 # Landing page
     apfelschlacht/+page.svelte   # Apple battle simulation
     steady-state/+page.svelte    # Particle simulation
+    chemistry/+page.svelte       # Chemistry reaction simulator
   lib/
     engine/                      # Apfelschlacht simulation engine
     render/                      # Apfelschlacht canvas renderer
@@ -172,6 +250,12 @@ web/src/
       render/                    # Particle canvas renderer
       stores/                    # Particle state stores
       components/                # Particle UI components
+    chemistry/
+      engine/                    # Chemistry simulation engine (reactions, collisions, decay)
+      render/                    # Chemistry canvas renderer (circles + wall-bound rectangles)
+      stores/                    # Chemistry state stores (config, chart data, reaction list)
+      components/                # Chemistry UI (control panel, charts, editor, stats, export)
+      data/                      # Built-in reaction library (18 reactions)
 ```
 
 ## Credits

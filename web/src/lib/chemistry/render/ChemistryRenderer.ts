@@ -54,7 +54,9 @@ export class ChemistryRenderer {
 		const def = speciesDefs.get(p.species);
 		const color = def?.color ?? '#aaa';
 
-		if (p.isProduct) {
+		if (p.pinned) {
+			this.drawPinnedParticle(p, color);
+		} else if (p.isProduct) {
 			this.drawProduct(p, color);
 		} else {
 			ctx.beginPath();
@@ -89,6 +91,41 @@ export class ChemistryRenderer {
 		ctx.fillStyle = grad;
 		ctx.fill();
 		ctx.globalAlpha = 1;
+
+		// Label inside if large enough
+		if (p.radius >= 12) {
+			this.drawLabel(p);
+		}
+	}
+
+	private drawPinnedParticle(p: ChemistryParticleState, color: string): void {
+		const { ctx } = this;
+		// Uniform visual size for all pinned particles to avoid blinking
+		// when catalyst sites (S*) are replaced by smaller adsorbed species
+		const PINNED_VISUAL_RADIUS = 9;
+		const size = PINNED_VISUAL_RADIUS * 1.6;
+		const half = size / 2;
+		const cornerRadius = Math.min(3, size * 0.12);
+
+		// Rounded square
+		ctx.beginPath();
+		ctx.roundRect(p.x - half, p.y - half, size, size, cornerRadius);
+		ctx.fillStyle = color;
+		ctx.fill();
+
+		// Bond glow for products (adsorbed intermediates)
+		if (p.isProduct) {
+			ctx.globalAlpha = 0.3;
+			const glowR = p.radius * 0.7;
+			const grad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, glowR);
+			grad.addColorStop(0, 'rgba(255, 255, 255, 0.8)');
+			grad.addColorStop(1, 'rgba(255, 255, 255, 0)');
+			ctx.beginPath();
+			ctx.arc(p.x, p.y, glowR, 0, Math.PI * 2);
+			ctx.fillStyle = grad;
+			ctx.fill();
+			ctx.globalAlpha = 1;
+		}
 
 		// Label inside if large enough
 		if (p.radius >= 12) {

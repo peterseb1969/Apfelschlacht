@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { MIN_HERTZ, MAX_HERTZ, MIN_EFFECTIVE_WIDTH, MAX_EFFECTIVE_WIDTH, MIN_TEMPERATURE, MAX_TEMPERATURE } from '../engine/constants';
-	import { running, config, chartData, maWindow, selectedReactionId, activeReaction } from '../stores/chemistryStore';
+	import { MIN_HERTZ, MAX_HERTZ, MIN_EFFECTIVE_WIDTH, MAX_EFFECTIVE_WIDTH } from '../engine/constants';
+	import { running, config, chartData, maWindow, selectedReactionId, activeReaction, latestState } from '../stores/chemistryStore';
 	import { reactions, isBuiltIn, addReaction, updateReaction, deleteReaction } from '../stores/reactionListStore';
 	import { createEventDispatcher } from 'svelte';
 	import type { ReactionDefinition } from '../engine/types';
@@ -31,7 +31,8 @@
 		{ key: 'dissociation', label: 'Dissoziation' },
 		{ key: 'equilibrium', label: 'Gleichgewicht' },
 		{ key: 'acid-base', label: 'Säure-Base' },
-		{ key: 'exchange', label: 'Austausch' }
+		{ key: 'exchange', label: 'Austausch' },
+		{ key: 'catalysis', label: 'Katalyse' }
 	] as const;
 
 	let categories = $derived(
@@ -46,7 +47,7 @@
 		const reaction = $reactions.find(r => r.id === id);
 		if (reaction) {
 			$activeReaction = reaction;
-			$config = { ...$config, forwardRateOverride: null, reverseRateOverride: null };
+			$config = { ...$config, forwardRateOverride: null, reverseRateOverride: null, stepRateOverrides: {} };
 			$running = false;
 			$chartData = [];
 			dispatch('reset');
@@ -101,7 +102,21 @@
 	}
 
 	function resetRates() {
-		$config = { ...$config, forwardRateOverride: null, reverseRateOverride: null };
+		$config = { ...$config, forwardRateOverride: null, reverseRateOverride: null, stepRateOverrides: {} };
+	}
+
+	function setStepForwardRate(stepIndex: number, e: Event) {
+		const value = Number((e.target as HTMLInputElement).value);
+		const overrides = { ...$config.stepRateOverrides };
+		overrides[stepIndex] = { ...overrides[stepIndex], forward: value };
+		$config = { ...$config, stepRateOverrides: overrides };
+	}
+
+	function setStepReverseRate(stepIndex: number, e: Event) {
+		const value = Number((e.target as HTMLInputElement).value);
+		const overrides = { ...$config.stepRateOverrides };
+		overrides[stepIndex] = { ...overrides[stepIndex], reverse: value };
+		$config = { ...$config, stepRateOverrides: overrides };
 	}
 
 	function setHertz(e: Event) {
@@ -146,7 +161,7 @@
 			addReaction(r);
 			$selectedReactionId = r.id;
 			$activeReaction = r;
-			$config = { ...$config, forwardRateOverride: null, reverseRateOverride: null };
+			$config = { ...$config, forwardRateOverride: null, reverseRateOverride: null, stepRateOverrides: {} };
 			$running = false;
 			$chartData = [];
 			dispatch('reset');
@@ -168,7 +183,7 @@
 		if (first) {
 			$selectedReactionId = first.id;
 			$activeReaction = first;
-			$config = { ...$config, forwardRateOverride: null, reverseRateOverride: null };
+			$config = { ...$config, forwardRateOverride: null, reverseRateOverride: null, stepRateOverrides: {} };
 			$running = false;
 			$chartData = [];
 			dispatch('reset');
@@ -214,6 +229,13 @@
 
 			{#if $activeReaction}
 				<div class="equation">{$activeReaction.equation}</div>
+				{#if $activeReaction.steps}
+					<ol class="step-list">
+						{#each $activeReaction.steps as step, i}
+							<li class="step-eq">{step.equation ?? `Schritt ${i + 1}`}</li>
+						{/each}
+					</ol>
+				{/if}
 				<p class="description">{$activeReaction.description}</p>
 				<p class="description en">{$activeReaction.descriptionEn}</p>
 			{/if}
@@ -228,7 +250,7 @@
 			{#if $activeReaction}
 				{#each $activeReaction.species as species}
 					<div class="species-row">
-						<span class="swatch" style="background: {species.color}"></span>
+						<span class="swatch" class:pinned={species.pinned} style="background: {species.color}"></span>
 						<span class="species-symbol">{species.symbol}</span>
 						<input class="count-input" type="number" min={0} max={500}
 							value={injectCounts[species.symbol] ?? 0}
@@ -243,11 +265,11 @@
 	<details open>
 		<summary>Steuerung</summary>
 		<div class="controls">
-			<label>
-				Temperatur: {$config.temperature.toFixed(1)}
-				<input type="range" min={MIN_TEMPERATURE} max={MAX_TEMPERATURE} step={0.1} value={$config.temperature}
-					oninput={(e) => $config = { ...$config, temperature: Number((e.target as HTMLInputElement).value) }} />
-			</label>
+			<div class="temp-row">
+				<span class="temp-label">T = {($latestState?.temperature ?? 0).toFixed(2)}</span>
+				<button class="temp-btn" onclick={() => dispatch('heat', { factor: 1.5 })}>Heizen</button>
+				<button class="temp-btn" onclick={() => dispatch('heat', { factor: 0.67 })}>Kühlen</button>
+			</div>
 
 			<label>
 				Volumen: {$config.effectiveWidth}
@@ -255,21 +277,46 @@
 					oninput={(e) => $config = { ...$config, effectiveWidth: Number((e.target as HTMLInputElement).value) }} />
 			</label>
 
-			<label>
-				Hin-Rate: {($config.forwardRateOverride ?? $activeReaction?.forwardRate ?? 0).toFixed(2)}
-				<input type="range" min={0} max={2} step={0.05}
-					value={$config.forwardRateOverride ?? $activeReaction?.forwardRate ?? 0}
-					oninput={setForwardRate} />
-			</label>
+			{#if $activeReaction?.steps}
+				<div class="step-rates">
+					{#each $activeReaction.steps as step, i}
+						<div class="step-rate-group">
+							<span class="step-label">{step.equation ?? `Schritt ${i + 1}`}</span>
+							<label>
+								Hin: {($config.stepRateOverrides[i]?.forward ?? step.forwardRate).toFixed(2)}
+								<input type="range" min={0} max={2} step={0.01}
+									value={$config.stepRateOverrides[i]?.forward ?? step.forwardRate}
+									oninput={(e) => setStepForwardRate(i, e)} />
+							</label>
+							{#if step.reversible}
+								<label>
+									Rück: {($config.stepRateOverrides[i]?.reverse ?? step.reverseRate).toFixed(2)}
+									<input type="range" min={0} max={2} step={0.01}
+										value={$config.stepRateOverrides[i]?.reverse ?? step.reverseRate}
+										oninput={(e) => setStepReverseRate(i, e)} />
+								</label>
+							{/if}
+						</div>
+					{/each}
+				</div>
+				<button class="small-btn" onclick={resetRates}>Raten zurücksetzen</button>
+			{:else}
+				<label>
+					Hin-Rate: {($config.forwardRateOverride ?? $activeReaction?.forwardRate ?? 0).toFixed(2)}
+					<input type="range" min={0} max={2} step={0.05}
+						value={$config.forwardRateOverride ?? $activeReaction?.forwardRate ?? 0}
+						oninput={setForwardRate} />
+				</label>
 
-			<label>
-				Rück-Rate: {($config.reverseRateOverride ?? $activeReaction?.reverseRate ?? 0).toFixed(2)}
-				<input type="range" min={0} max={2} step={0.05}
-					value={$config.reverseRateOverride ?? $activeReaction?.reverseRate ?? 0}
-					oninput={setReverseRate} />
-			</label>
+				<label>
+					Rück-Rate: {($config.reverseRateOverride ?? $activeReaction?.reverseRate ?? 0).toFixed(2)}
+					<input type="range" min={0} max={2} step={0.05}
+						value={$config.reverseRateOverride ?? $activeReaction?.reverseRate ?? 0}
+						oninput={setReverseRate} />
+				</label>
 
-			<button class="small-btn" onclick={resetRates}>Raten zurücksetzen</button>
+				<button class="small-btn" onclick={resetRates}>Raten zurücksetzen</button>
+			{/if}
 
 			<label class="checkbox-label">
 				<input type="checkbox" checked={$config.gravityOn} onchange={toggleGravity} />
@@ -420,6 +467,19 @@
 		color: #777;
 	}
 
+	.step-list {
+		margin: 4px 0;
+		padding-left: 22px;
+		font-family: 'Times New Roman', serif;
+		font-size: 0.85rem;
+		color: #bbb;
+		line-height: 1.5;
+	}
+
+	.step-eq {
+		padding: 1px 0;
+	}
+
 	.species-row {
 		display: flex;
 		align-items: center;
@@ -432,6 +492,10 @@
 		height: 14px;
 		border-radius: 50%;
 		flex-shrink: 0;
+	}
+
+	.swatch.pinned {
+		border-radius: 2px;
 	}
 
 	.species-symbol {
@@ -521,6 +585,54 @@
 		font-size: 0.9rem;
 		background: #333;
 		color: white;
+	}
+
+	.temp-row {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+	}
+
+	.temp-label {
+		font-family: monospace;
+		font-size: 0.85rem;
+		flex: 1;
+	}
+
+	.temp-btn {
+		padding: 3px 10px;
+		font-size: 0.8rem;
+		cursor: pointer;
+		border: 1px solid #666;
+		border-radius: 4px;
+		background: #333;
+		color: #ccc;
+	}
+
+	.temp-btn:hover {
+		background: #444;
+	}
+
+	.step-rates {
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+	}
+
+	.step-rate-group {
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+		padding: 6px 8px;
+		background: #2a2a2a;
+		border-radius: 4px;
+	}
+
+	.step-label {
+		font-family: 'Times New Roman', serif;
+		font-size: 0.8rem;
+		color: #bbb;
+		margin-bottom: 2px;
 	}
 
 	.buttons button.primary {

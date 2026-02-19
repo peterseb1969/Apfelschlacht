@@ -256,6 +256,301 @@ export const reactionLibrary: ReactionDefinition[] = [
 		forwardRate: 0.4,
 		reverseRate: 0.3,
 		reversible: true
+	},
+
+	// === CATALYSIS ===
+	{
+		id: 'haber-bosch',
+		name: 'Haber-Bosch-Synthese',
+		nameEn: 'Haber-Bosch Synthesis',
+		equation: 'N\u2082 + 3 H\u2082 \u21CC 2 NH\u2083 (katalytisch)',
+		category: 'catalysis',
+		description: 'Industrielle Ammoniaksynthese \u00FCber 7 Oberfl\u00E4chen-Gleichgewichte an einem Eisenkatalysator (S*). Schritt 3 (N\u2261N-Spaltung) ist geschwindigkeitsbestimmend.',
+		descriptionEn: 'Industrial ammonia synthesis via 7 surface equilibria on an iron catalyst (S*). Step 3 (N\u2261N bond breaking) is rate-limiting.',
+		species: [
+			{ symbol: 'H\u2082', color: '#3498db', radius: 5, defaultCount: 40, role: 'reactant' },
+			{ symbol: 'N\u2082', color: '#9b59b6', radius: 6, defaultCount: 20, role: 'reactant' },
+			{ symbol: 'S*', color: '#95a5a6', radius: 9, defaultCount: 120, role: 'reactant', pinned: true },
+			{ symbol: 'H_ad', color: '#2980b9', radius: 4, defaultCount: 0, role: 'product', pinned: true },
+			{ symbol: 'N\u2082_ad', color: '#8e44ad', radius: 7, defaultCount: 0, role: 'product', pinned: true },
+			{ symbol: 'N_ad', color: '#7d3c98', radius: 5, defaultCount: 0, role: 'product', pinned: true },
+			{ symbol: 'NH_ad', color: '#27ae60', radius: 6, defaultCount: 0, role: 'product', pinned: true },
+			{ symbol: 'NH\u2082_ad', color: '#2ecc71', radius: 7, defaultCount: 0, role: 'product', pinned: true },
+			{ symbol: 'NH\u2083_ad', color: '#1abc9c', radius: 8, defaultCount: 0, role: 'product', pinned: true },
+			{ symbol: 'NH\u2083', color: '#16a085', radius: 7, defaultCount: 0, role: 'product' }
+		],
+		reactants: ['N\u2082', 'H\u2082'],
+		products: ['NH\u2083'],
+		forwardRate: 0,
+		reverseRate: 0,
+		reversible: true,
+		steps: [
+			{
+				reactants: ['H\u2082', 'S*'],
+				products: ['H_ad', 'H_ad'],
+				forwardRate: 0.6,
+				reverseRate: 0.15,
+				reversible: true,
+				equation: 'H\u2082 + S* \u21CC 2 H_ad'
+			},
+			{
+				reactants: ['N\u2082', 'S*'],
+				products: ['N\u2082_ad'],
+				forwardRate: 0.4,
+				reverseRate: 0.2,
+				reversible: true,
+				equation: 'N\u2082 + S* \u21CC N\u2082_ad'
+			},
+			{
+				reactants: ['N\u2082_ad'],
+				products: ['N_ad', 'N_ad'],
+				forwardRate: 0.04,
+				reverseRate: 0.3,
+				reversible: true,
+				equation: 'N\u2082_ad \u21CC 2 N_ad (langsam)'
+			},
+			{
+				reactants: ['N_ad', 'H_ad'],
+				products: ['NH_ad'],
+				forwardRate: 0.5,
+				reverseRate: 0.15,
+				reversible: true,
+				equation: 'N_ad + H_ad \u21CC NH_ad'
+			},
+			{
+				reactants: ['NH_ad', 'H_ad'],
+				products: ['NH\u2082_ad'],
+				forwardRate: 0.5,
+				reverseRate: 0.15,
+				reversible: true,
+				equation: 'NH_ad + H_ad \u21CC NH\u2082_ad'
+			},
+			{
+				reactants: ['NH\u2082_ad', 'H_ad'],
+				products: ['NH\u2083_ad'],
+				forwardRate: 0.5,
+				reverseRate: 0.15,
+				reversible: true,
+				equation: 'NH\u2082_ad + H_ad \u21CC NH\u2083_ad'
+			},
+			{
+				reactants: ['NH\u2083_ad'],
+				products: ['NH\u2083', 'S*'],
+				forwardRate: 0.3,
+				reverseRate: 0.1,
+				reversible: true,
+				equation: 'NH\u2083_ad \u21CC NH\u2083 + S*'
+			}
+		]
+	},
+
+	// === CHAIN REACTIONS ===
+	{
+		id: 'h2-br2-chain',
+		name: 'H\u2082/Br\u2082-Kettenreaktion',
+		nameEn: 'H\u2082/Br\u2082 Chain Reaction',
+		equation: 'H\u2082 + Br\u2082 \u2192 2 HBr',
+		category: 'catalysis',
+		description: 'Klassische Radikalketten-Reaktion: Initiierung durch Br\u2082-Zerfall, Kettenfortpflanzung durch Br\u2022- und H\u2022-Radikale, Kettenabbruch durch Radikalrekombination.',
+		descriptionEn: 'Classic radical chain reaction: initiation by Br\u2082 homolysis, propagation via Br\u2022 and H\u2022 radicals, termination by radical recombination.',
+		species: [
+			{ symbol: 'H\u2082', color: '#3498db', radius: 5, defaultCount: 40, role: 'reactant' },
+			{ symbol: 'Br\u2082', color: '#c0392b', radius: 8, defaultCount: 40, role: 'reactant' },
+			{ symbol: 'Br\u2022', color: '#e74c3c', radius: 4, defaultCount: 0, role: 'product' },
+			{ symbol: 'H\u2022', color: '#85c1e9', radius: 3, defaultCount: 0, role: 'product' },
+			{ symbol: 'HBr', color: '#e67e22', radius: 6, defaultCount: 0, role: 'product' }
+		],
+		reactants: [],
+		products: [],
+		forwardRate: 0,
+		reverseRate: 0,
+		reversible: false,
+		steps: [
+			{
+				reactants: ['Br\u2082'],
+				products: ['Br\u2022', 'Br\u2022'],
+				forwardRate: 0.03,
+				reverseRate: 0.6,
+				reversible: true,
+				equation: 'Br\u2082 \u21CC 2 Br\u2022 (Initiierung)'
+			},
+			{
+				reactants: ['Br\u2022', 'H\u2082'],
+				products: ['HBr', 'H\u2022'],
+				forwardRate: 0.5,
+				reverseRate: 0.05,
+				reversible: true,
+				equation: 'Br\u2022 + H\u2082 \u2192 HBr + H\u2022'
+			},
+			{
+				reactants: ['H\u2022', 'Br\u2082'],
+				products: ['HBr', 'Br\u2022'],
+				forwardRate: 0.8,
+				reverseRate: 0,
+				reversible: false,
+				equation: 'H\u2022 + Br\u2082 \u2192 HBr + Br\u2022 (schnell)'
+			}
+		]
+	},
+	{
+		id: 'ch4-cl2-chain',
+		name: 'Methan-Chlorierung',
+		nameEn: 'Methane Chlorination',
+		equation: 'CH\u2084 + Cl\u2082 \u2192 CH\u2083Cl + HCl',
+		category: 'catalysis',
+		description: 'Radikalische Substitution: Cl\u2082-Homolyse startet eine Kette. Nebenprodukt Ethan (C\u2082H\u2086) entsteht durch Methylradikal-Rekombination.',
+		descriptionEn: 'Radical substitution: Cl\u2082 homolysis starts a chain. Side product ethane (C\u2082H\u2086) forms by methyl radical recombination.',
+		species: [
+			{ symbol: 'CH\u2084', color: '#95a5a6', radius: 7, defaultCount: 40, role: 'reactant' },
+			{ symbol: 'Cl\u2082', color: '#2ecc71', radius: 7, defaultCount: 40, role: 'reactant' },
+			{ symbol: 'Cl\u2022', color: '#27ae60', radius: 4, defaultCount: 0, role: 'product' },
+			{ symbol: 'CH\u2083\u2022', color: '#7f8c8d', radius: 5, defaultCount: 0, role: 'product' },
+			{ symbol: 'HCl', color: '#f1c40f', radius: 5, defaultCount: 0, role: 'product' },
+			{ symbol: 'CH\u2083Cl', color: '#1abc9c', radius: 8, defaultCount: 0, role: 'product' },
+			{ symbol: 'C\u2082H\u2086', color: '#bdc3c7', radius: 9, defaultCount: 0, role: 'product' }
+		],
+		reactants: [],
+		products: [],
+		forwardRate: 0,
+		reverseRate: 0,
+		reversible: false,
+		steps: [
+			{
+				reactants: ['Cl\u2082'],
+				products: ['Cl\u2022', 'Cl\u2022'],
+				forwardRate: 0.04,
+				reverseRate: 0.5,
+				reversible: true,
+				equation: 'Cl\u2082 \u21CC 2 Cl\u2022 (Initiierung)'
+			},
+			{
+				reactants: ['Cl\u2022', 'CH\u2084'],
+				products: ['HCl', 'CH\u2083\u2022'],
+				forwardRate: 0.5,
+				reverseRate: 0.02,
+				reversible: true,
+				equation: 'Cl\u2022 + CH\u2084 \u2192 HCl + CH\u2083\u2022'
+			},
+			{
+				reactants: ['CH\u2083\u2022', 'Cl\u2082'],
+				products: ['CH\u2083Cl', 'Cl\u2022'],
+				forwardRate: 0.6,
+				reverseRate: 0,
+				reversible: false,
+				equation: 'CH\u2083\u2022 + Cl\u2082 \u2192 CH\u2083Cl + Cl\u2022'
+			},
+			{
+				reactants: ['CH\u2083\u2022', 'CH\u2083\u2022'],
+				products: ['C\u2082H\u2086'],
+				forwardRate: 0.7,
+				reverseRate: 0.01,
+				reversible: true,
+				equation: '2 CH\u2083\u2022 \u2192 C\u2082H\u2086 (Abbruch)'
+			}
+		]
+	},
+	{
+		id: 'h2-combustion',
+		name: 'Knallgas (Kettenexplosion)',
+		nameEn: 'Hydrogen Combustion (Chain Explosion)',
+		equation: '2 H\u2082 + O\u2082 \u2192 2 H\u2082O',
+		category: 'catalysis',
+		description: 'Kettenverzweigende Explosion: Ein Radikal erzeugt zwei neue. OH\u2022, H\u2022 und O\u2022 vermehren sich exponentiell \u2014 sichtbare Explosion.',
+		descriptionEn: 'Chain-branching explosion: one radical produces two. OH\u2022, H\u2022 and O\u2022 multiply exponentially \u2014 visible explosion.',
+		species: [
+			{ symbol: 'H\u2082', color: '#3498db', radius: 5, defaultCount: 50, role: 'reactant' },
+			{ symbol: 'O\u2082', color: '#e74c3c', radius: 6, defaultCount: 25, role: 'reactant' },
+			{ symbol: 'OH\u2022', color: '#f39c12', radius: 4, defaultCount: 0, role: 'product' },
+			{ symbol: 'H\u2022', color: '#85c1e9', radius: 3, defaultCount: 0, role: 'product' },
+			{ symbol: 'O\u2022', color: '#e91e63', radius: 4, defaultCount: 0, role: 'product' },
+			{ symbol: 'H\u2082O', color: '#2980b9', radius: 6, defaultCount: 0, role: 'product' }
+		],
+		reactants: [],
+		products: [],
+		forwardRate: 0,
+		reverseRate: 0,
+		reversible: false,
+		steps: [
+			{
+				reactants: ['H\u2082', 'O\u2082'],
+				products: ['OH\u2022', 'OH\u2022'],
+				forwardRate: 0.02,
+				reverseRate: 0,
+				reversible: false,
+				equation: 'H\u2082 + O\u2082 \u2192 2 OH\u2022 (Initiierung)'
+			},
+			{
+				reactants: ['OH\u2022', 'H\u2082'],
+				products: ['H\u2082O', 'H\u2022'],
+				forwardRate: 0.7,
+				reverseRate: 0,
+				reversible: false,
+				equation: 'OH\u2022 + H\u2082 \u2192 H\u2082O + H\u2022'
+			},
+			{
+				reactants: ['H\u2022', 'O\u2082'],
+				products: ['OH\u2022', 'O\u2022'],
+				forwardRate: 0.6,
+				reverseRate: 0,
+				reversible: false,
+				equation: 'H\u2022 + O\u2082 \u2192 OH\u2022 + O\u2022 (Verzweigung)'
+			},
+			{
+				reactants: ['O\u2022', 'H\u2082'],
+				products: ['OH\u2022', 'H\u2022'],
+				forwardRate: 0.6,
+				reverseRate: 0,
+				reversible: false,
+				equation: 'O\u2022 + H\u2082 \u2192 OH\u2022 + H\u2022 (Verzweigung)'
+			}
+		]
+	},
+	{
+		id: 'ozone-cl',
+		name: 'Ozonabbau durch Chlor',
+		nameEn: 'Ozone Depletion by Chlorine',
+		equation: 'O\u2083 + O \u2192 2 O\u2082 (Cl-katalysiert)',
+		category: 'catalysis',
+		description: 'Katalytischer Ozonabbau: Cl\u2022 wird nicht verbraucht, sondern zerst\u00F6rt in einem Zyklus je ein O\u2083-Molek\u00FCl. Homogene Gasphasenkatalyse.',
+		descriptionEn: 'Catalytic ozone destruction: Cl\u2022 is not consumed but destroys one O\u2083 molecule per cycle. Homogeneous gas-phase catalysis.',
+		species: [
+			{ symbol: 'O\u2083', color: '#3498db', radius: 8, defaultCount: 50, role: 'reactant' },
+			{ symbol: 'O\u2082', color: '#2ecc71', radius: 6, defaultCount: 0, role: 'product' },
+			{ symbol: 'O\u2022', color: '#e74c3c', radius: 4, defaultCount: 0, role: 'product' },
+			{ symbol: 'Cl\u2022', color: '#f1c40f', radius: 4, defaultCount: 5, role: 'reactant' },
+			{ symbol: 'ClO', color: '#e67e22', radius: 6, defaultCount: 0, role: 'product' }
+		],
+		reactants: [],
+		products: [],
+		forwardRate: 0,
+		reverseRate: 0,
+		reversible: false,
+		steps: [
+			{
+				reactants: ['O\u2083'],
+				products: ['O\u2082', 'O\u2022'],
+				forwardRate: 0.06,
+				reverseRate: 0.3,
+				reversible: true,
+				equation: 'O\u2083 \u21CC O\u2082 + O\u2022 (langsam)'
+			},
+			{
+				reactants: ['Cl\u2022', 'O\u2083'],
+				products: ['ClO', 'O\u2082'],
+				forwardRate: 0.7,
+				reverseRate: 0.05,
+				reversible: true,
+				equation: 'Cl\u2022 + O\u2083 \u2192 ClO + O\u2082'
+			},
+			{
+				reactants: ['ClO', 'O\u2022'],
+				products: ['Cl\u2022', 'O\u2082'],
+				forwardRate: 0.8,
+				reverseRate: 0,
+				reversible: false,
+				equation: 'ClO + O\u2022 \u2192 Cl\u2022 + O\u2082 (Regeneration)'
+			}
+		]
 	}
 ];
 
