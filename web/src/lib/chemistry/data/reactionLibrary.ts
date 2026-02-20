@@ -11,9 +11,9 @@ export const reactionLibrary: ReactionDefinition[] = [
 		description: 'Bildung des blutrot gef\u00E4rbten Eisen(III)-thiocyanat-Komplexes. Klassischer Nachweis f\u00FCr Fe\u00B3\u207A-Ionen.',
 		descriptionEn: 'Formation of the blood-red iron(III) thiocyanate complex. Classic test for Fe\u00B3\u207A ions.',
 		species: [
-			{ symbol: 'Fe\u00B3\u207A', color: '#d4a017', radius: 8, defaultCount: 30, role: 'reactant' },
-			{ symbol: 'SCN\u207B', color: '#3498db', radius: 7, defaultCount: 30, role: 'reactant' },
-			{ symbol: '[Fe(SCN)]\u00B2\u207A', color: '#c0392b', radius: 12, defaultCount: 0, role: 'product' }
+			{ symbol: 'Fe\u00B3\u207A', color: '#d4a017', radius: 8, defaultCount: 30, role: 'reactant', liquid: true },
+			{ symbol: 'SCN\u207B', color: '#3498db', radius: 7, defaultCount: 30, role: 'reactant', liquid: true },
+			{ symbol: '[Fe(SCN)]\u00B2\u207A', color: '#c0392b', radius: 12, defaultCount: 0, role: 'product', liquid: true }
 		],
 		reactants: ['Fe\u00B3\u207A', 'SCN\u207B'],
 		products: ['[Fe(SCN)]\u00B2\u207A'],
@@ -30,9 +30,9 @@ export const reactionLibrary: ReactionDefinition[] = [
 		description: 'Reversible Bindung von Sauerstoff an H\u00E4moglobin im Blut.',
 		descriptionEn: 'Reversible binding of oxygen to hemoglobin in blood.',
 		species: [
-			{ symbol: 'Hb', color: '#8e44ad', radius: 12, defaultCount: 20, role: 'reactant' },
-			{ symbol: 'O\u2082', color: '#e74c3c', radius: 5, defaultCount: 40, role: 'reactant' },
-			{ symbol: 'HbO\u2082', color: '#e91e63', radius: 14, defaultCount: 0, role: 'product' }
+			{ symbol: 'Hb', color: '#8e44ad', radius: 12, defaultCount: 20, role: 'reactant', liquid: true },
+			{ symbol: 'O\u2082', color: '#e74c3c', radius: 5, defaultCount: 40, role: 'reactant', liquid: true },
+			{ symbol: 'HbO\u2082', color: '#e91e63', radius: 14, defaultCount: 0, role: 'product', liquid: true }
 		],
 		reactants: ['Hb', 'O\u2082'],
 		products: ['HbO\u2082'],
@@ -49,9 +49,9 @@ export const reactionLibrary: ReactionDefinition[] = [
 		description: 'Bildung des braunen Triiodid-Ions aus Iod und Iodid.',
 		descriptionEn: 'Formation of the brown triiodide ion from iodine and iodide.',
 		species: [
-			{ symbol: 'I\u2082', color: '#6c3483', radius: 9, defaultCount: 25, role: 'reactant' },
-			{ symbol: 'I\u207B', color: '#af7ac5', radius: 6, defaultCount: 25, role: 'reactant' },
-			{ symbol: 'I\u2083\u207B', color: '#4a235a', radius: 12, defaultCount: 0, role: 'product' }
+			{ symbol: 'I\u2082', color: '#6c3483', radius: 9, defaultCount: 25, role: 'reactant', liquid: true },
+			{ symbol: 'I\u207B', color: '#af7ac5', radius: 6, defaultCount: 25, role: 'reactant', liquid: true },
+			{ symbol: 'I\u2083\u207B', color: '#4a235a', radius: 12, defaultCount: 0, role: 'product', liquid: true }
 		],
 		reactants: ['I\u2082', 'I\u207B'],
 		products: ['I\u2083\u207B'],
@@ -63,14 +63,14 @@ export const reactionLibrary: ReactionDefinition[] = [
 		id: 'ag-cl',
 		name: 'Silberchlorid-F\u00E4llung',
 		nameEn: 'Silver Chloride Precipitation',
-		equation: 'Ag\u207A + Cl\u207B \u21CC AgCl',
+		equation: 'Ag\u207A(aq) + Cl\u207B(aq) \u21CC AgCl\u2193',
 		category: 'complexation',
 		description: 'F\u00E4llung von schwer l\u00F6slichem Silberchlorid. Klassischer Halogenid-Nachweis.',
 		descriptionEn: 'Precipitation of sparingly soluble silver chloride. Classic halide test.',
 		species: [
-			{ symbol: 'Ag\u207A', color: '#bdc3c7', radius: 7, defaultCount: 25, role: 'reactant' },
-			{ symbol: 'Cl\u207B', color: '#27ae60', radius: 6, defaultCount: 25, role: 'reactant' },
-			{ symbol: 'AgCl', color: '#ecf0f1', radius: 10, defaultCount: 0, role: 'product' }
+			{ symbol: 'Ag\u207A', color: '#bdc3c7', radius: 7, defaultCount: 25, role: 'reactant', liquid: true },
+			{ symbol: 'Cl\u207B', color: '#27ae60', radius: 6, defaultCount: 25, role: 'reactant', liquid: true },
+			{ symbol: 'AgCl', color: '#ecf0f1', radius: 10, defaultCount: 0, role: 'product', solid: true }
 		],
 		reactants: ['Ag\u207A', 'Cl\u207B'],
 		products: ['AgCl'],
@@ -126,9 +126,9 @@ export const reactionLibrary: ReactionDefinition[] = [
 		description: 'Schwache S\u00E4ure: Nur teilweise Dissoziation der Essigs\u00E4ure in Acetat und Protonen.',
 		descriptionEn: 'Weak acid: only partial dissociation of acetic acid into acetate and protons.',
 		species: [
-			{ symbol: 'CH\u2083COOH', color: '#f1c40f', radius: 10, defaultCount: 40, role: 'reactant' },
-			{ symbol: 'CH\u2083COO\u207B', color: '#e67e22', radius: 9, defaultCount: 0, role: 'product' },
-			{ symbol: 'H\u207A', color: '#e74c3c', radius: 4, defaultCount: 0, role: 'product' }
+			{ symbol: 'CH\u2083COOH', color: '#f1c40f', radius: 10, defaultCount: 40, role: 'reactant', liquid: true },
+			{ symbol: 'CH\u2083COO\u207B', color: '#e67e22', radius: 9, defaultCount: 0, role: 'product', liquid: true },
+			{ symbol: 'H\u207A', color: '#e74c3c', radius: 4, defaultCount: 0, role: 'product', liquid: true }
 		],
 		reactants: ['CH\u2083COOH'],
 		products: ['CH\u2083COO\u207B', 'H\u207A'],
@@ -140,13 +140,13 @@ export const reactionLibrary: ReactionDefinition[] = [
 		id: 'caco3',
 		name: 'Kalkzerfall',
 		nameEn: 'Calcium Carbonate Decomposition',
-		equation: 'CaCO\u2083 \u21CC CaO + CO\u2082',
+		equation: 'CaCO\u2083(s) \u21CC CaO(s) + CO\u2082\u2191',
 		category: 'dissociation',
 		description: 'Thermischer Zerfall von Kalkstein. Wichtig f\u00FCr die Zementherstellung.',
 		descriptionEn: 'Thermal decomposition of limestone. Important in cement production.',
 		species: [
-			{ symbol: 'CaCO\u2083', color: '#ecf0f1', radius: 11, defaultCount: 30, role: 'reactant' },
-			{ symbol: 'CaO', color: '#bdc3c7', radius: 8, defaultCount: 0, role: 'product' },
+			{ symbol: 'CaCO\u2083', color: '#ecf0f1', radius: 11, defaultCount: 30, role: 'reactant', solid: true },
+			{ symbol: 'CaO', color: '#bdc3c7', radius: 8, defaultCount: 0, role: 'product', solid: true },
 			{ symbol: 'CO\u2082', color: '#95a5a6', radius: 6, defaultCount: 0, role: 'product' }
 		],
 		reactants: ['CaCO\u2083'],
@@ -185,9 +185,9 @@ export const reactionLibrary: ReactionDefinition[] = [
 		description: 'Neutralisationsreaktion: Protonen und Hydroxid-Ionen vereinigen sich zu Wasser.',
 		descriptionEn: 'Neutralization reaction: protons and hydroxide ions combine to form water.',
 		species: [
-			{ symbol: 'H\u207A', color: '#e74c3c', radius: 4, defaultCount: 30, role: 'reactant' },
-			{ symbol: 'OH\u207B', color: '#3498db', radius: 5, defaultCount: 30, role: 'reactant' },
-			{ symbol: 'H\u2082O', color: '#85c1e9', radius: 7, defaultCount: 0, role: 'product' }
+			{ symbol: 'H\u207A', color: '#e74c3c', radius: 4, defaultCount: 30, role: 'reactant', liquid: true },
+			{ symbol: 'OH\u207B', color: '#3498db', radius: 5, defaultCount: 30, role: 'reactant', liquid: true },
+			{ symbol: 'H\u2082O', color: '#85c1e9', radius: 7, defaultCount: 0, role: 'product', liquid: true }
 		],
 		reactants: ['H\u207A', 'OH\u207B'],
 		products: ['H\u2082O'],
@@ -204,10 +204,10 @@ export const reactionLibrary: ReactionDefinition[] = [
 		description: 'Ammoniak als schwache Base: Protonenaufnahme aus Wasser.',
 		descriptionEn: 'Ammonia as a weak base: proton uptake from water.',
 		species: [
-			{ symbol: 'NH\u2083', color: '#2ecc71', radius: 7, defaultCount: 30, role: 'reactant' },
-			{ symbol: 'H\u2082O', color: '#85c1e9', radius: 6, defaultCount: 30, role: 'reactant' },
-			{ symbol: 'NH\u2084\u207A', color: '#27ae60', radius: 8, defaultCount: 0, role: 'product' },
-			{ symbol: 'OH\u207B', color: '#3498db', radius: 5, defaultCount: 0, role: 'product' }
+			{ symbol: 'NH\u2083', color: '#2ecc71', radius: 7, defaultCount: 30, role: 'reactant', liquid: true },
+			{ symbol: 'H\u2082O', color: '#85c1e9', radius: 6, defaultCount: 30, role: 'reactant', liquid: true },
+			{ symbol: 'NH\u2084\u207A', color: '#27ae60', radius: 8, defaultCount: 0, role: 'product', liquid: true },
+			{ symbol: 'OH\u207B', color: '#3498db', radius: 5, defaultCount: 0, role: 'product', liquid: true }
 		],
 		reactants: ['NH\u2083', 'H\u2082O'],
 		products: ['NH\u2084\u207A', 'OH\u207B'],
@@ -226,10 +226,10 @@ export const reactionLibrary: ReactionDefinition[] = [
 		description: 'Klassische Neutralisation: starke S\u00E4ure und starke Base reagieren zu Salz und Wasser.',
 		descriptionEn: 'Classic neutralization: strong acid and strong base react to form salt and water.',
 		species: [
-			{ symbol: 'HCl', color: '#e74c3c', radius: 6, defaultCount: 30, role: 'reactant' },
-			{ symbol: 'NaOH', color: '#3498db', radius: 7, defaultCount: 30, role: 'reactant' },
-			{ symbol: 'NaCl', color: '#ecf0f1', radius: 8, defaultCount: 0, role: 'product' },
-			{ symbol: 'H\u2082O', color: '#85c1e9', radius: 6, defaultCount: 0, role: 'product' }
+			{ symbol: 'HCl', color: '#e74c3c', radius: 6, defaultCount: 30, role: 'reactant', liquid: true },
+			{ symbol: 'NaOH', color: '#3498db', radius: 7, defaultCount: 30, role: 'reactant', liquid: true },
+			{ symbol: 'NaCl', color: '#ecf0f1', radius: 8, defaultCount: 0, role: 'product', liquid: true },
+			{ symbol: 'H\u2082O', color: '#85c1e9', radius: 6, defaultCount: 0, role: 'product', liquid: true }
 		],
 		reactants: ['HCl', 'NaOH'],
 		products: ['NaCl', 'H\u2082O'],

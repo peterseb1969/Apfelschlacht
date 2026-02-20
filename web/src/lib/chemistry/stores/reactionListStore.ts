@@ -1,4 +1,4 @@
-import { writable } from 'svelte/store';
+import { writable, get } from 'svelte/store';
 import type { ReactionDefinition } from '../engine/types';
 import { reactionLibrary } from '../data/reactionLibrary';
 
@@ -51,4 +51,12 @@ export function deleteReaction(id: string): void {
 		saveCustomReactions(next);
 		return next;
 	});
+}
+
+export function getCustomReactions(): ReactionDefinition[] {
+	return get(reactions).filter(r => !builtInIds.has(r.id));
+}
+
+export function getAllReactions(): ReactionDefinition[] {
+	return get(reactions);
 }

@@ -154,19 +154,21 @@ Five reactions use multi-step mechanisms with individually tunable rates:
 
 Create and edit custom reactions via a full-featured modal editor:
 
-- **Species table** — Define particle types with symbol, color, radius, initial count, role (reactant/product), and pinned flag. Pinned species are bound to the container walls (rendered as rectangles).
+- **Species table** — Define particle types with symbol, color, radius, initial count, role (reactant/product), and phase. The phase dropdown offers three options: Gas (free-floating), Feststoff/Solid (settles to bottom, rendered as rectangle), and Katalysator/Catalyst (bound to container walls, rendered as rectangle).
 - **Single-step mode** — Set a global forward and reverse rate with a reversibility toggle.
 - **Multi-step mode** — Toggle "Mehrstufig" (multi-step) to define individual reaction steps. Each step has its own reactants, products, forward/reverse rates, reversibility, and equation label. Reactant/product dropdowns are populated from the species defined above.
 - **Categories** — Complexation, dissociation, equilibrium, acid-base, exchange, catalysis.
 - **Persistence** — Custom reactions are saved to localStorage and survive page reloads. Built-in reactions cannot be deleted.
+- **Import/Export** — Export custom reactions as a JSON file (`reaktionen.json`). Import reactions from a JSON file; ID conflicts are resolved automatically.
 
 **Physics:**
 - Elastic collisions with mass-dependent momentum transfer
 - Inelastic reactions consume kinetic energy (binding energy), which is restored on decay
-- Emergent temperature: T is computed from actual kinetic energy of gas-phase particles (T = total KE / N), not set externally
+- Emergent temperature: T is computed from actual kinetic energy of gas-phase particles (T = total KE / N), not set externally. Solid and pinned species are excluded from temperature calculations.
 - Heat/Cool buttons scale all particle velocities, shifting the temperature
 - Injection velocity matches current thermal speed
-- Wall-bound (pinned) species are distributed around all four walls and rendered as colored rectangles
+- Wall-bound (catalyst) species are distributed around all four walls and rendered as colored rectangles
+- Solid species (e.g. AgCl, CaCO₃, CaO) settle to the bottom under a constant downward force with heavy damping. Once slow enough they pin in place. Additional solids stack on top of settled layers via collision detection — slow solids pin on contact with already-settled particles, fast ones undergo a heavily damped bounce before settling.
 - Optional gravity with configurable strength
 - Adjustable container volume (effective width)
 
@@ -178,6 +180,7 @@ Create and edit custom reactions via a full-featured modal editor:
 | Reset | Restart with current settings |
 | Reaction selector | Choose a built-in or custom reaction |
 | New / Edit / Delete | Open the reaction editor or delete a custom reaction |
+| Export / Import | Export custom reactions as JSON or import from file |
 | Forward / Reverse rate | Global rate override (single-step reactions) |
 | Per-step rate sliders | Individual forward/reverse rate for each step (multi-step reactions) |
 | Reset rates | Restore original reaction rates |
@@ -194,9 +197,10 @@ Create and edit custom reactions via a full-featured modal editor:
 - **Pressure** — Live line chart of pressure (wall-collision frequency).
 
 **Rendering:**
-- Gas-phase particles: colored filled circles with symbol labels
-- Pinned (wall-bound) particles: colored filled rectangles of uniform size, distributed around all four walls
-- Legend uses circles for gas-phase species and rounded rectangles for pinned species
+- Gas-phase particles: colored filled circles. Symbol labels are drawn inside particles with radius >= 12; smaller species (e.g. radicals in chain reactions) are too small for labels and show only the colored circle.
+- Solid species: colored filled rectangles that settle to the bottom and stack
+- Catalyst (wall-bound) particles: colored filled rectangles of uniform size, distributed around all four walls
+- Legend uses circles for gas-phase species and rounded rectangles for solid/catalyst species
 
 **Export:** CSV and JSON export of time-series data (species counts, pressure, temperature, volume).
 

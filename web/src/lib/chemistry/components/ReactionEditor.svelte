@@ -27,11 +27,18 @@
 	let multiStep = $state(!!(r?.steps && r.steps.length > 0));
 
 	// Species table — deep-clone to avoid mutating the original
-	const initSpecies: (SpeciesDefinition & { _key: number })[] = r
-		? r.species.map((s, i) => ({ ...s, pinned: s.pinned ?? false, _key: i }))
+	type Phase = 'gas' | 'liquid' | 'solid' | 'catalyst';
+	function phaseFromDef(s: SpeciesDefinition): Phase {
+		if (s.pinned) return 'catalyst';
+		if (s.solid) return 'solid';
+		if (s.liquid) return 'liquid';
+		return 'gas';
+	}
+	const initSpecies: (SpeciesDefinition & { _key: number; _phase: Phase })[] = r
+		? r.species.map((s, i) => ({ ...s, pinned: s.pinned ?? false, solid: s.solid ?? false, liquid: s.liquid ?? false, _phase: phaseFromDef(s), _key: i }))
 		: [
-			{ symbol: '', color: '#e74c3c', radius: 8, defaultCount: 30, role: 'reactant' as const, pinned: false, _key: 0 },
-			{ symbol: '', color: '#3498db', radius: 8, defaultCount: 0, role: 'product' as const, pinned: false, _key: 1 }
+			{ symbol: '', color: '#e74c3c', radius: 8, defaultCount: 30, role: 'reactant' as const, pinned: false, solid: false, liquid: false, _phase: 'gas' as Phase, _key: 0 },
+			{ symbol: '', color: '#3498db', radius: 8, defaultCount: 0, role: 'product' as const, pinned: false, solid: false, liquid: false, _phase: 'gas' as Phase, _key: 1 }
 		];
 	let species = $state(initSpecies);
 	let nextKey = $state(initSpecies.length);
@@ -75,7 +82,7 @@
 	let availableSymbols = $derived(species.map(s => s.symbol.trim()).filter(s => s));
 
 	function addSpecies() {
-		species = [...species, { symbol: '', color: '#888888', radius: 8, defaultCount: 0, role: 'reactant', pinned: false, _key: nextKey }];
+		species = [...species, { symbol: '', color: '#888888', radius: 8, defaultCount: 0, role: 'reactant', pinned: false, solid: false, liquid: false, _phase: 'gas' as Phase, _key: nextKey }];
 		nextKey++;
 	}
 
@@ -144,10 +151,38 @@
 		}
 		error = '';
 
-		const cleanSpecies: SpeciesDefinition[] = species.map(({ _key, ...s }) => ({
-			...s,
-			symbol: s.symbol.trim()
-		}));
+		const cleanSpecies: SpeciesDefinition[] = species.map(({ _key, _phase, ...s }) => {
+			const base = { ...s, symbol: s.symbol.trim() };
+			base.pinned = _phase === 'catalyst';
+			base.solid = _phase === 'solid';
+			base.liquid = _phase === 'liquid';
+			return base;
+		});
+
+		// Build reactants/products arrays, preserving stoichiometry from original
+		let finalReactants: string[];
+		let finalProducts: string[];
+		if (multiStep) {
+			finalReactants = [];
+			finalProducts = [];
+		} else if (r) {
+			// Editing existing: preserve original arrays (keeps duplicates like ['NO₂','NO₂']).
+			// Map renamed symbols by species position.
+			const oldSymbols = r.species.map(s => s.symbol);
+			const newSymbols = cleanSpecies.map(s => s.symbol);
+			const rename = new Map<string, string>();
+			for (let i = 0; i < Math.min(oldSymbols.length, newSymbols.length); i++) {
+				if (oldSymbols[i] !== newSymbols[i]) {
+					rename.set(oldSymbols[i], newSymbols[i]);
+				}
+			}
+			finalReactants = r.reactants.map(s => rename.get(s) ?? s);
+			finalProducts = r.products.map(s => rename.get(s) ?? s);
+		} else {
+			// New reaction: build from roles
+			finalReactants = cleanSpecies.filter(s => s.role === 'reactant').map(s => s.symbol);
+			finalProducts = cleanSpecies.filter(s => s.role === 'product').map(s => s.symbol);
+		}
 
 		const result: ReactionDefinition = {
 			id: r?.id ?? `custom-${Date.now()}`,
@@ -158,8 +193,8 @@
 			description: description.trim(),
 			descriptionEn: descriptionEn.trim(),
 			species: cleanSpecies,
-			reactants: multiStep ? [] : cleanSpecies.filter(s => s.role === 'reactant').map(s => s.symbol),
-			products: multiStep ? [] : cleanSpecies.filter(s => s.role === 'product').map(s => s.symbol),
+			reactants: finalReactants,
+			products: finalProducts,
 			forwardRate: multiStep ? 0 : forwardRate,
 			reverseRate: multiStep ? 0 : (reversible ? reverseRate : 0),
 			reversible: multiStep ? false : reversible
@@ -266,7 +301,7 @@
 				<span>Radius</span>
 				<span>Anzahl</span>
 				<span>Rolle</span>
-				<span>Fest</span>
+				<span>Phase</span>
 				<span></span>
 			</div>
 			{#each species as sp (sp._key)}
@@ -279,7 +314,12 @@
 						<option value="reactant">Edukt</option>
 						<option value="product">Produkt</option>
 					</select>
-					<input type="checkbox" bind:checked={sp.pinned} class="sp-pinned" />
+					<select bind:value={sp._phase} class="sp-phase">
+						<option value="gas">Gas</option>
+						<option value="liquid">Flüssig</option>
+						<option value="solid">Feststoff</option>
+						<option value="catalyst">Katalysator</option>
+					</select>
 					<button class="delete-btn" onclick={() => removeSpecies(sp._key)} title="Entfernen">&times;</button>
 				</div>
 			{/each}
@@ -435,7 +475,7 @@
 
 	.species-header {
 		display: grid;
-		grid-template-columns: 2fr 40px 60px 60px 90px 32px 30px;
+		grid-template-columns: 2fr 40px 60px 60px 90px 90px 30px;
 		gap: 6px;
 		font-size: 0.75rem;
 		color: #888;
@@ -444,7 +484,7 @@
 
 	.species-row {
 		display: grid;
-		grid-template-columns: 2fr 40px 60px 60px 90px 32px 30px;
+		grid-template-columns: 2fr 40px 60px 60px 90px 90px 30px;
 		gap: 6px;
 		align-items: center;
 	}
@@ -494,9 +534,13 @@
 		font-size: 0.8rem;
 	}
 
-	.sp-pinned {
-		justify-self: center;
-		cursor: pointer;
+	.sp-phase {
+		padding: 4px 4px;
+		background: #2a2a2a;
+		color: #eee;
+		border: 1px solid #555;
+		border-radius: 4px;
+		font-size: 0.75rem;
 	}
 
 	.delete-btn {

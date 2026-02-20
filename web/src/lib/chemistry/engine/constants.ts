@@ -17,6 +17,10 @@ export const MAX_TEMPERATURE = 5.0;
 
 export const DENSITY_SECTIONS = 10;
 
+export const SETTLING_FORCE = 0.15;
+export const SETTLING_DAMPING = 0.92;
+export const SETTLING_THRESHOLD = 0.3;
+
 export const INJECT_RATE = 20;
 export const INJECT_SPREAD = Math.PI / 6;
 export const INJECT_SPEED_FACTOR = 1.5;

@@ -14,6 +14,7 @@ export class ChemistryParticle {
 	bindingEnergy = 0;
 	rotation = 0;
 	angularVelocity = 0;
+	reactionCooldown = 0;
 
 	constructor(
 		species: string,

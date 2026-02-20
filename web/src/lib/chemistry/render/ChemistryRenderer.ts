@@ -54,7 +54,7 @@ export class ChemistryRenderer {
 		const def = speciesDefs.get(p.species);
 		const color = def?.color ?? '#aaa';
 
-		if (p.pinned) {
+		if (p.pinned || def?.solid) {
 			this.drawPinnedParticle(p, color);
 		} else if (p.isProduct) {
 			this.drawProduct(p, color);
@@ -68,6 +68,15 @@ export class ChemistryRenderer {
 			if (p.radius >= 12) {
 				this.drawLabel(p);
 			}
+		}
+
+		// Liquid border ring (drawn on top of any non-solid/non-pinned particle)
+		if (def?.liquid && !p.pinned && !def?.solid) {
+			ctx.beginPath();
+			ctx.arc(p.x, p.y, p.radius + 1, 0, Math.PI * 2);
+			ctx.strokeStyle = 'rgba(255, 255, 255, 0.45)';
+			ctx.lineWidth = 2;
+			ctx.stroke();
 		}
 	}
 

@@ -5,6 +5,8 @@ export interface SpeciesDefinition {
 	defaultCount: number;
 	role: 'reactant' | 'product';
 	pinned?: boolean;
+	solid?: boolean;
+	liquid?: boolean;
 }
 
 export type ReactionCategory = 'dissociation' | 'complexation' | 'acid-base' | 'equilibrium' | 'exchange' | 'catalysis';

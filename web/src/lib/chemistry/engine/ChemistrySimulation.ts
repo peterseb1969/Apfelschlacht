@@ -4,7 +4,7 @@ import { Injector } from './Injector';
 import {
 	SCREEN_WIDTH, SCREEN_HEIGHT, DEFAULT_HERTZ, DEFAULT_MOTION,
 	DEFAULT_GRAVITY, DEFAULT_EFFECTIVE_WIDTH, DEFAULT_TEMPERATURE,
-	DENSITY_SECTIONS
+	DENSITY_SECTIONS, SETTLING_FORCE, SETTLING_DAMPING, SETTLING_THRESHOLD
 } from './constants';
 import type {
 	ReactionDefinition, SpeciesDefinition,
@@ -159,6 +159,20 @@ export class ChemistrySimulation {
 			return;
 		}
 
+		if (def.solid) {
+			// Place solid species at bottom, already settled
+			const r = def.radius;
+			for (let i = 0; i < count; i++) {
+				const x = r + Math.random() * (this.effectiveWidth - 2 * r);
+				const p = new ChemistryParticle(
+					symbol, x, this.height - r, 0, 0,
+					r, r / 10, false, true
+				);
+				this.addParticle(p);
+			}
+			return;
+		}
+
 		const sides: Array<'left' | 'right' | 'top' | 'bottom'> = ['left', 'right', 'top', 'bottom'];
 		const side = sides[Math.floor(Math.random() * sides.length)];
 		const position = 0.3 + 0.4 * Math.random();
@@ -176,6 +190,8 @@ export class ChemistrySimulation {
 		for (const arr of this.particles.values()) {
 			for (const p of arr) {
 				if (p.pinned) continue;
+				const def = this.speciesDefs.get(p.species);
+				if (def?.solid) continue;
 				p.vx *= scale;
 				p.vy *= scale;
 			}
@@ -194,6 +210,8 @@ export class ChemistrySimulation {
 		for (const arr of this.particles.values()) {
 			for (const p of arr) {
 				if (p.pinned) continue;
+				const def = this.speciesDefs.get(p.species);
+				if (def?.solid) continue;
 				ke += 0.5 * p.mass * (p.vx * p.vx + p.vy * p.vy);
 				n++;
 			}
@@ -211,6 +229,8 @@ export class ChemistrySimulation {
 		for (const arr of this.particles.values()) {
 			for (const p of arr) {
 				if (p.pinned) continue;
+				const def = this.speciesDefs.get(p.species);
+				if (def?.solid) continue;
 				p.vx *= correction;
 				p.vy *= correction;
 			}
@@ -304,6 +324,22 @@ export class ChemistrySimulation {
 			}
 		}
 
+		// 3b. Settling for solid species
+		for (const p of all) {
+			if (p.pinned) continue;
+			const def = this.speciesDefs.get(p.species);
+			if (!def?.solid) continue;
+			p.vy += SETTLING_FORCE;
+			p.vx *= SETTLING_DAMPING;
+			p.vy *= SETTLING_DAMPING;
+			if (p.y + p.radius >= this.height - 1 && Math.abs(p.vy) < SETTLING_THRESHOLD && Math.abs(p.vx) < SETTLING_THRESHOLD) {
+				p.y = this.height - p.radius;
+				p.vx = 0;
+				p.vy = 0;
+				p.pinned = true;
+			}
+		}
+
 		// 4. Leapfrog second half-step
 		if (this.gravityOn) {
 			const halfG = this.gravity * 0.5;
@@ -313,6 +349,11 @@ export class ChemistrySimulation {
 		// 5. Collision detection
 		const handled = new Set<number>();
 		const allCurrent = this.getAllParticles();
+
+		// Tick down reaction cooldowns
+		for (const p of allCurrent) {
+			if (p.reactionCooldown > 0) p.reactionCooldown--;
+		}
 
 		for (let i = 0; i < allCurrent.length; i++) {
 			if (handled.has(allCurrent[i].id)) continue;
@@ -324,7 +365,8 @@ export class ChemistrySimulation {
 				const dy = a.y - b.y;
 				const dist = Math.sqrt(dx * dx + dy * dy);
 				if (dist < a.radius + b.radius) {
-					const rule = this.reactionEngine.matchCollision(a.species, b.species);
+					const canReact = a.reactionCooldown === 0 && b.reactionCooldown === 0;
+					const rule = canReact ? this.reactionEngine.matchCollision(a.species, b.species) : null;
 					if (rule) {
 						this.executeReaction(a, b, rule.products);
 						handled.add(a.id);
@@ -401,13 +443,15 @@ export class ChemistrySimulation {
 			const def = this.speciesDefs.get(products[0]);
 			const radius = def?.radius ?? Math.max(3, a.radius + b.radius - 3);
 			const isPinned = def?.pinned ?? false;
+			const isSolid = def?.solid ?? false;
 			const p = new ChemistryParticle(
 				products[0], cx, cy,
-				isPinned ? 0 : cvx, isPinned ? 0 : cvy,
+				(isPinned || isSolid) ? 0 : cvx, (isPinned || isSolid) ? 0 : cvy,
 				radius, mc, true, isPinned
 			);
 			p.bindingEnergy = bindingEnergy;
-			if (!isPinned) {
+			p.reactionCooldown = 2;
+			if (!isPinned && !isSolid) {
 				p.angularVelocity = omega;
 				if (pinnedReactant) this.ensureThermalKick(p);
 			}
@@ -422,6 +466,10 @@ export class ChemistrySimulation {
 			const m1 = r1 / 10;
 			const pin0 = def0?.pinned ?? false;
 			const pin1 = def1?.pinned ?? false;
+			const solid0 = def0?.solid ?? false;
+			const solid1 = def1?.solid ?? false;
+			const still0 = pin0 || solid0;
+			const still1 = pin1 || solid1;
 
 			const sep = r0 + r1 + 2;
 
@@ -439,6 +487,8 @@ export class ChemistrySimulation {
 					cx + tx * halfSep, cy + ty * halfSep,
 					0, 0, r1, m1, def1?.role === 'product', true
 				);
+				p0.reactionCooldown = 2;
+				p1.reactionCooldown = 2;
 				this.addParticle(p0);
 				this.addParticle(p1);
 				return;
@@ -451,30 +501,36 @@ export class ChemistrySimulation {
 			// Distribute remaining KE as relative velocity
 			const relKE = Math.max(0, bindingEnergy * 0.5);
 			const totalM = m0 + m1;
-			const kick0 = Math.sqrt(2 * relKE * m1 / (m0 * totalM));
-			const kick1 = (m0 / m1) * kick0;
+			const rawKick0 = Math.sqrt(2 * relKE * m1 / (m0 * totalM));
+			const rawKick1 = (m0 / m1) * rawKick0;
+			// Ensure minimum separation velocity
+			const minKick = this.thermalSpeed(totalM * 0.5) * 0.5;
+			const kick0 = Math.max(rawKick0, minKick);
+			const kick1 = Math.max(rawKick1, minKick);
 
 			const p0 = new ChemistryParticle(
 				products[0],
-				pin0 ? cx : cx - cosA * sep * 0.5,
-				pin0 ? cy : cy - sinA * sep * 0.5,
-				pin0 ? 0 : cvx - cosA * kick0,
-				pin0 ? 0 : cvy - sinA * kick0,
+				still0 ? cx : cx - cosA * sep * 0.5,
+				still0 ? cy : cy - sinA * sep * 0.5,
+				still0 ? 0 : cvx - cosA * kick0,
+				still0 ? 0 : cvy - sinA * kick0,
 				r0, m0, def0?.role === 'product', pin0
 			);
 			const p1 = new ChemistryParticle(
 				products[1],
-				pin1 ? cx : cx + cosA * sep * 0.5,
-				pin1 ? cy : cy + sinA * sep * 0.5,
-				pin1 ? 0 : cvx + cosA * kick1,
-				pin1 ? 0 : cvy + sinA * kick1,
+				still1 ? cx : cx + cosA * sep * 0.5,
+				still1 ? cy : cy + sinA * sep * 0.5,
+				still1 ? 0 : cvx + cosA * kick1,
+				still1 ? 0 : cvy + sinA * kick1,
 				r1, m1, def1?.role === 'product', pin1
 			);
+			p0.reactionCooldown = 2;
+			p1.reactionCooldown = 2;
 			// Surface thermostat: ensure unpinned products from surface reactions
 			// get at least thermal velocity (models surface heat bath)
 			if (pinnedReactant) {
-				if (!pin0) this.ensureThermalKick(p0);
-				if (!pin1) this.ensureThermalKick(p1);
+				if (!still0) this.ensureThermalKick(p0);
+				if (!still1) this.ensureThermalKick(p1);
 			}
 			this.addParticle(p0);
 			this.addParticle(p1);
@@ -489,13 +545,16 @@ export class ChemistrySimulation {
 		if (toSpecies.length === 1) {
 			const def = this.speciesDefs.get(toSpecies[0]);
 			const isPinned = def?.pinned ?? false;
+			const isSolid = def?.solid ?? false;
+			const still = isPinned || isSolid;
 			const np = new ChemistryParticle(
 				toSpecies[0], p.x, p.y,
-				isPinned ? 0 : p.vx, isPinned ? 0 : p.vy,
+				still ? 0 : p.vx, still ? 0 : p.vy,
 				def?.radius ?? p.radius, def ? def.radius / 10 : p.mass,
 				def?.role === 'product', isPinned
 			);
-			if (!isPinned && parentPinned) this.ensureThermalKick(np);
+			np.reactionCooldown = 2;
+			if (!still && parentPinned) this.ensureThermalKick(np);
 			this.addParticle(np);
 		} else if (toSpecies.length === 2) {
 			const def0 = this.speciesDefs.get(toSpecies[0]);
@@ -507,6 +566,10 @@ export class ChemistrySimulation {
 			const mc = m0 + m1;
 			const pin0 = def0?.pinned ?? false;
 			const pin1 = def1?.pinned ?? false;
+			const solid0 = def0?.solid ?? false;
+			const solid1 = def1?.solid ?? false;
+			const still0 = pin0 || solid0;
+			const still1 = pin1 || solid1;
 
 			const energy = Math.max(0, p.bindingEnergy);
 			const kickMag0 = Math.sqrt(2 * energy * m1 / (m0 * mc));
@@ -529,33 +592,37 @@ export class ChemistrySimulation {
 						p.x + tx * halfSep, p.y + ty * halfSep,
 						0, 0, r1, m1, def1?.role === 'product', true
 					);
+					p0.reactionCooldown = 2;
+					p1.reactionCooldown = 2;
 					this.addParticle(p0);
 					this.addParticle(p1);
 				} else {
-					// Mixed: pinned products stay at parent position,
-					// unpinned products get thermal kick upward (surface heat bath)
+					// Mixed: pinned/solid products stay at parent position,
+					// gas products get thermal kick upward (surface heat bath)
 					const upAngle = -Math.PI / 2 + (Math.random() - 0.5) * Math.PI * 0.4;
 					const cosUp = Math.cos(upAngle);
 					const sinUp = Math.sin(upAngle);
 
 					const p0 = new ChemistryParticle(
 						toSpecies[0],
-						pin0 ? p.x : p.x + cosUp * sep,
-						pin0 ? p.y : p.y + sinUp * sep,
-						pin0 ? 0 : cosUp * kickMag0,
-						pin0 ? 0 : sinUp * kickMag0,
+						still0 ? p.x : p.x + cosUp * sep,
+						still0 ? p.y : p.y + sinUp * sep,
+						still0 ? 0 : cosUp * kickMag0,
+						still0 ? 0 : sinUp * kickMag0,
 						r0, m0, def0?.role === 'product', pin0
 					);
 					const p1 = new ChemistryParticle(
 						toSpecies[1],
-						pin1 ? p.x : p.x + cosUp * sep,
-						pin1 ? p.y : p.y + sinUp * sep,
-						pin1 ? 0 : cosUp * kickMag1,
-						pin1 ? 0 : sinUp * kickMag1,
+						still1 ? p.x : p.x + cosUp * sep,
+						still1 ? p.y : p.y + sinUp * sep,
+						still1 ? 0 : cosUp * kickMag1,
+						still1 ? 0 : sinUp * kickMag1,
 						r1, m1, def1?.role === 'product', pin1
 					);
-					if (!pin0) this.ensureThermalKick(p0);
-					if (!pin1) this.ensureThermalKick(p1);
+					if (!still0) this.ensureThermalKick(p0);
+					if (!still1) this.ensureThermalKick(p1);
+					p0.reactionCooldown = 2;
+					p1.reactionCooldown = 2;
 					this.addParticle(p0);
 					this.addParticle(p1);
 				}
@@ -565,22 +632,30 @@ export class ChemistrySimulation {
 				const sinA = Math.sin(angle);
 				const sep = r0 + r1 + 2;
 
+				// Ensure a minimum relative kick so products separate,
+				// even when bindingEnergy is 0 (initial particles)
+				const minKick = this.thermalSpeed((m0 + m1) * 0.5) * 0.5;
+				const kick0 = Math.max(kickMag0, minKick);
+				const kick1 = Math.max(kickMag1, minKick);
+
 				const p0 = new ChemistryParticle(
 					toSpecies[0],
-					pin0 ? p.x : p.x - cosA * sep * 0.5,
-					pin0 ? p.y : p.y - sinA * sep * 0.5,
-					pin0 ? 0 : p.vx - cosA * kickMag0,
-					pin0 ? 0 : p.vy - sinA * kickMag0,
+					still0 ? p.x : p.x - cosA * sep * 0.5,
+					still0 ? p.y : p.y - sinA * sep * 0.5,
+					still0 ? 0 : p.vx - cosA * kick0,
+					still0 ? 0 : p.vy - sinA * kick0,
 					r0, m0, def0?.role === 'product', pin0
 				);
 				const p1 = new ChemistryParticle(
 					toSpecies[1],
-					pin1 ? p.x : p.x + cosA * sep * 0.5,
-					pin1 ? p.y : p.y + sinA * sep * 0.5,
-					pin1 ? 0 : p.vx + cosA * kickMag1,
-					pin1 ? 0 : p.vy + sinA * kickMag1,
+					still1 ? p.x : p.x + cosA * sep * 0.5,
+					still1 ? p.y : p.y + sinA * sep * 0.5,
+					still1 ? 0 : p.vx + cosA * kick1,
+					still1 ? 0 : p.vy + sinA * kick1,
 					r1, m1, def1?.role === 'product', pin1
 				);
+				p0.reactionCooldown = 2;
+				p1.reactionCooldown = 2;
 				this.addParticle(p0);
 				this.addParticle(p1);
 			}
@@ -604,9 +679,38 @@ export class ChemistrySimulation {
 		if (a.pinned && b.pinned) return; // two pinned particles don't interact
 
 		if (a.pinned || b.pinned) {
-			// Pinned particle acts as infinite mass — gas particle bounces off
 			const gas = a.pinned ? b : a;
 			const pin = a.pinned ? a : b;
+			const gasDef = this.speciesDefs.get(gas.species);
+
+			// Solid landing on a pinned particle — stack or damped bounce
+			if (gasDef?.solid) {
+				const speed = Math.sqrt(gas.vx * gas.vx + gas.vy * gas.vy);
+				const overlap = (a.radius + b.radius) - dist;
+				const sepNx = gas === a ? nx : -nx;
+				const sepNy = gas === a ? ny : -ny;
+				if (overlap > 0) {
+					gas.x += sepNx * overlap;
+					gas.y += sepNy * overlap;
+				}
+				if (speed < SETTLING_THRESHOLD * 3) {
+					// Slow enough — pin on top
+					gas.vx = 0;
+					gas.vy = 0;
+					gas.pinned = true;
+				} else {
+					// Still too fast — heavily damped bounce (lose 80% energy)
+					const sign = gas === a ? 1 : -1;
+					const vn = (gas.vx - pin.vx) * nx * sign + (gas.vy - pin.vy) * ny * sign;
+					gas.vx -= 2 * vn * nx * sign;
+					gas.vy -= 2 * vn * ny * sign;
+					gas.vx *= 0.45;
+					gas.vy *= 0.45;
+				}
+				return;
+			}
+
+			// Gas particle bounces off pinned — elastic
 			const sign = gas === a ? 1 : -1;
 			const vn = (gas.vx - pin.vx) * nx * sign + (gas.vy - pin.vy) * ny * sign;
 			gas.vx -= 2 * vn * nx * sign;

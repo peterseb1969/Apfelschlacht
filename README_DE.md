@@ -154,19 +154,21 @@ Fuenf Reaktionen verwenden mehrstufige Mechanismen mit einzeln einstellbaren Rat
 
 Erstelle und bearbeite eigene Reaktionen ueber einen umfangreichen Modal-Editor:
 
-- **Spezies-Tabelle** — Definiere Partikeltypen mit Symbol, Farbe, Radius, Startanzahl, Rolle (Edukt/Produkt) und Fest-Flag. Feste Spezies sind an die Behaelterwand gebunden (dargestellt als Rechtecke).
+- **Spezies-Tabelle** — Definiere Partikeltypen mit Symbol, Farbe, Radius, Startanzahl, Rolle (Edukt/Produkt) und Phase. Das Phasen-Dropdown bietet drei Optionen: Gas (frei fliegend), Feststoff (sinkt zum Boden, als Rechteck dargestellt), Katalysator (an Behaelterwand gebunden, als Rechteck dargestellt).
 - **Einstufiger Modus** — Setze eine globale Hin- und Rueckrate mit Reversibilitaets-Toggle.
 - **Mehrstufiger Modus** — Aktiviere "Mehrstufig", um einzelne Reaktionsschritte zu definieren. Jeder Schritt hat eigene Edukte, Produkte, Hin-/Rueckraten, Reversibilitaet und Gleichungsbezeichnung. Die Edukt-/Produkt-Dropdowns werden aus den oben definierten Spezies befuellt.
 - **Kategorien** — Komplexbildung, Dissoziation, Gleichgewicht, Saeure-Base, Austausch, Katalyse.
 - **Persistenz** — Eigene Reaktionen werden im localStorage gespeichert und ueberleben Seitenaktualisierungen. Vordefinierte Reaktionen koennen nicht geloescht werden.
+- **Import/Export** — Eigene Reaktionen als JSON-Datei (`reaktionen.json`) exportieren. Reaktionen aus JSON-Datei importieren; ID-Konflikte werden automatisch aufgeloest.
 
 **Physik:**
 - Elastische Stoesse mit masseabhaengigem Impulsaustausch
 - Inelastische Reaktionen verbrauchen kinetische Energie (Bindungsenergie), die beim Zerfall zurueckgegeben wird
-- Emergente Temperatur: T wird aus der tatsaechlichen kinetischen Energie der Gasteilchen berechnet (T = Gesamt-KE / N), nicht extern gesetzt
+- Emergente Temperatur: T wird aus der tatsaechlichen kinetischen Energie der Gasteilchen berechnet (T = Gesamt-KE / N), nicht extern gesetzt. Feststoffe und Katalysatoren sind von der Temperaturberechnung ausgeschlossen.
 - Heizen/Kuehlen-Buttons skalieren alle Partikelgeschwindigkeiten und verschieben die Temperatur
 - Injektionsgeschwindigkeit entspricht der aktuellen thermischen Geschwindigkeit
-- Wandgebundene (feste) Spezies verteilen sich auf alle vier Waende und werden als farbige Rechtecke dargestellt
+- Katalysator-Spezies (wandgebunden) verteilen sich auf alle vier Waende und werden als farbige Rechtecke dargestellt
+- Feststoff-Spezies (z.B. AgCl, CaCO₃, CaO) sinken durch eine konstante Abwaertskraft mit starker Daempfung zum Boden. Sobald sie langsam genug sind, werden sie fixiert. Weitere Feststoffe stapeln sich auf bereits abgesetzten Schichten — langsame Feststoffe fixieren sich bei Kontakt, schnelle prallen stark gedaempft ab und setzen sich dann ab.
 - Optionale Schwerkraft mit einstellbarer Staerke
 - Einstellbares Behaeltervolumen (effektive Breite)
 
@@ -178,6 +180,7 @@ Erstelle und bearbeite eigene Reaktionen ueber einen umfangreichen Modal-Editor:
 | Reset | Neustart mit aktuellen Einstellungen |
 | Reaktionsauswahl | Vordefinierte oder eigene Reaktion waehlen |
 | Neu / Bearbeiten / Loeschen | Reaktionseditor oeffnen oder eigene Reaktion loeschen |
+| Export / Import | Eigene Reaktionen als JSON exportieren oder aus Datei importieren |
 | Hin- / Rueckrate | Globale Raten-Ueberschreibung (einstufige Reaktionen) |
 | Schrittweise Raten-Regler | Individuelle Hin-/Rueckrate je Schritt (mehrstufige Reaktionen) |
 | Raten zuruecksetzen | Urspruengliche Reaktionsraten wiederherstellen |
@@ -194,9 +197,10 @@ Erstelle und bearbeite eigene Reaktionen ueber einen umfangreichen Modal-Editor:
 - **Druck** — Live-Liniendiagramm des Drucks (Wandkollisions-Frequenz).
 
 **Darstellung:**
-- Gasteilchen: farbige gefuellte Kreise mit Symbol-Beschriftung
-- Feste (wandgebundene) Teilchen: farbige gefuellte Rechtecke einheitlicher Groesse, auf allen vier Waenden verteilt
-- Legende verwendet Kreise fuer Gasteilchen und abgerundete Rechtecke fuer feste Spezies
+- Gasteilchen: farbige gefuellte Kreise. Symbol-Beschriftungen erscheinen nur bei Teilchen mit Radius >= 12; kleinere Spezies (z.B. Radikale in Kettenreaktionen) zeigen nur den farbigen Kreis.
+- Feststoff-Spezies: farbige gefuellte Rechtecke, die zum Boden sinken und sich stapeln
+- Katalysator-Teilchen (wandgebunden): farbige gefuellte Rechtecke einheitlicher Groesse, auf allen vier Waenden verteilt
+- Legende verwendet Kreise fuer Gasteilchen und abgerundete Rechtecke fuer Feststoff-/Katalysator-Spezies
 
 **Export:** CSV- und JSON-Export der Zeitreihendaten (Spezies-Bestand, Druck, Temperatur, Volumen).
 

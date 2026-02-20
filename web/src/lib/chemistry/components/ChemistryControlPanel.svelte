@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { MIN_HERTZ, MAX_HERTZ, MIN_EFFECTIVE_WIDTH, MAX_EFFECTIVE_WIDTH } from '../engine/constants';
 	import { running, config, chartData, maWindow, selectedReactionId, activeReaction, latestState } from '../stores/chemistryStore';
-	import { reactions, isBuiltIn, addReaction, updateReaction, deleteReaction } from '../stores/reactionListStore';
+	import { reactions, isBuiltIn, addReaction, updateReaction, deleteReaction, getAllReactions } from '../stores/reactionListStore';
 	import { createEventDispatcher } from 'svelte';
 	import type { ReactionDefinition } from '../engine/types';
 	import ReactionEditor from './ReactionEditor.svelte';
@@ -198,6 +198,62 @@
 		editorOpen = false;
 	}
 
+	let fileInput = $state<HTMLInputElement | null>(null);
+
+	function exportReactions() {
+		const all = getAllReactions();
+		const json = JSON.stringify(all, null, 2);
+		const blob = new Blob([json], { type: 'application/json' });
+		const url = URL.createObjectURL(blob);
+		const a = document.createElement('a');
+		a.href = url;
+		a.download = 'reaktionen.json';
+		a.click();
+		URL.revokeObjectURL(url);
+	}
+
+	function triggerImport() {
+		fileInput?.click();
+	}
+
+	function handleImportFile(e: Event) {
+		const file = (e.target as HTMLInputElement).files?.[0];
+		if (!file) return;
+		const reader = new FileReader();
+		reader.onload = () => {
+			try {
+				const data = JSON.parse(reader.result as string);
+				if (!Array.isArray(data)) {
+					alert('Ungültiges Format: Array erwartet.');
+					return;
+				}
+				const existingIds = new Set($reactions.map(r => r.id));
+				let added = 0;
+				let updated = 0;
+				for (const r of data) {
+					if (!r.id || !r.name || !r.species) continue;
+					if (existingIds.has(r.id)) {
+						updateReaction(r.id, r);
+						updated++;
+					} else {
+						addReaction(r);
+						existingIds.add(r.id);
+						added++;
+					}
+				}
+				const parts: string[] = [];
+				if (added > 0) parts.push(`${added} hinzugefügt`);
+				if (updated > 0) parts.push(`${updated} aktualisiert`);
+				alert(parts.length > 0 ? `Reaktionen: ${parts.join(', ')}.` : 'Keine Reaktionen importiert.');
+			} catch {
+				alert('Fehler beim Lesen der Datei.');
+			}
+			// Reset file input so same file can be re-imported
+			if (fileInput) fileInput.value = '';
+		};
+		reader.readAsText(file);
+	}
+
 	function handleDelete() {
 		const id = $selectedReactionId;
 		if (isBuiltIn(id)) return;
@@ -266,6 +322,11 @@
 			{/if}
 
 			<button class="small-btn new-btn" onclick={openNew}>+ Neue Reaktion</button>
+			<div class="io-row">
+				<button class="small-btn" onclick={exportReactions}>Export</button>
+				<button class="small-btn" onclick={triggerImport}>Import</button>
+				<input type="file" accept=".json" bind:this={fileInput} onchange={handleImportFile} class="hidden-input" />
+			</div>
 		</div>
 	</details>
 
@@ -275,7 +336,7 @@
 			{#if $activeReaction}
 				{#each $activeReaction.species as species}
 					<div class="species-row">
-						<span class="swatch" class:pinned={species.pinned} style="background: {species.color}"></span>
+						<span class="swatch" class:pinned={species.pinned || species.solid} class:liquid={species.liquid} style="background: {species.color}"></span>
 						<span class="species-symbol">{species.symbol}</span>
 						<input class="count-input" type="number" min={0} max={500}
 							value={injectCounts[species.symbol] ?? 0}
@@ -532,6 +593,10 @@
 		border-radius: 2px;
 	}
 
+	.swatch.liquid {
+		box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.45);
+	}
+
 	.species-symbol {
 		flex: 1;
 		font-family: 'Times New Roman', serif;
@@ -679,6 +744,19 @@
 		font-size: 0.8rem;
 		color: #bbb;
 		margin-bottom: 2px;
+	}
+
+	.io-row {
+		display: flex;
+		gap: 6px;
+	}
+
+	.io-row .small-btn {
+		flex: 1;
+	}
+
+	.hidden-input {
+		display: none;
 	}
 
 	.buttons button.primary {
