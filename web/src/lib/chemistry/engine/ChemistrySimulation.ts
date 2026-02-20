@@ -37,6 +37,8 @@ export class ChemistrySimulation {
 	private forwardRateOverride: number | null = null;
 	private reverseRateOverride: number | null = null;
 	private stepRateOverrides: Record<number, { forward?: number; reverse?: number }> = {};
+	private thermostatEnabled = false;
+	private thermostatTarget = 0;
 
 	constructor() {}
 
@@ -87,6 +89,11 @@ export class ChemistrySimulation {
 	setStepRates(overrides: Record<number, { forward?: number; reverse?: number }>): void {
 		this.stepRateOverrides = overrides;
 		this.rebuildEngine();
+	}
+
+	setThermostat(enabled: boolean, target: number): void {
+		this.thermostatEnabled = enabled;
+		this.thermostatTarget = target;
 	}
 
 	setup(): void {
@@ -161,9 +168,10 @@ export class ChemistrySimulation {
 		this.injectors.push(new Injector(side, position, def, count, thermalV));
 	}
 
-	/** Scale all gas particle velocities by sqrt(factor), changing temperature by factor */
-	heat(factor: number): void {
-		if (factor <= 0) return;
+	/** Scale all gas particle velocities by sqrt(factor), changing temperature by factor.
+	 *  Returns the new thermostat target (only meaningful when thermostat is on). */
+	heat(factor: number): number {
+		if (factor <= 0) return this.thermostatTarget;
 		const scale = Math.sqrt(factor);
 		for (const arr of this.particles.values()) {
 			for (const p of arr) {
@@ -173,6 +181,10 @@ export class ChemistrySimulation {
 			}
 		}
 		this.updateTemperature();
+		if (this.thermostatEnabled) {
+			this.thermostatTarget *= factor;
+		}
+		return this.thermostatTarget;
 	}
 
 	/** Compute temperature from actual gas particle KE: T = totalKE / N_gas */
@@ -187,6 +199,23 @@ export class ChemistrySimulation {
 			}
 		}
 		this.currentTemperature = n > 0 ? ke / n : DEFAULT_TEMPERATURE;
+	}
+
+	/** Gently nudge gas particle velocities toward the thermostat target temperature.
+	 *  Corrects ~30% of the deviation per second to avoid jarring jumps. */
+	private applyThermostat(): void {
+		const ratio = this.thermostatTarget / this.currentTemperature;
+		if (Math.abs(ratio - 1) < 0.02) return; // within 2%, skip
+		// Move 30% toward target per recording interval
+		const correction = 1 + (Math.sqrt(ratio) - 1) * 0.3;
+		for (const arr of this.particles.values()) {
+			for (const p of arr) {
+				if (p.pinned) continue;
+				p.vx *= correction;
+				p.vy *= correction;
+			}
+		}
+		this.updateTemperature();
 	}
 
 	setEffectiveWidth(newWidth: number): void {
@@ -329,9 +358,12 @@ export class ChemistrySimulation {
 			this.decayAccumulators.set(ri, remaining);
 		}
 
-		// 7. Temperature + density recording
+		// 7. Temperature + density recording + thermostat
 		if (this.timeSinceRecord >= 1) {
 			this.updateTemperature();
+			if (this.thermostatEnabled && this.thermostatTarget > 0 && this.currentTemperature > 0) {
+				this.applyThermostat();
+			}
 			this.computeDensity();
 			this.timeSinceRecord = 0;
 		}

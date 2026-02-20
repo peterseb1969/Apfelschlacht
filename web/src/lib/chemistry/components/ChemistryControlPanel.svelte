@@ -119,6 +119,31 @@
 		$config = { ...$config, stepRateOverrides: overrides };
 	}
 
+	function toggleThermostat() {
+		if ($config.thermostatEnabled) {
+			$config = { ...$config, thermostatEnabled: false };
+		} else {
+			const currentT = $latestState?.temperature ?? 0;
+			if (currentT > 0) {
+				$config = { ...$config, thermostatEnabled: true, thermostatTarget: currentT };
+			}
+		}
+	}
+
+	function handleHeat() {
+		dispatch('heat', { factor: 1.5 });
+		if ($config.thermostatEnabled) {
+			$config = { ...$config, thermostatTarget: $config.thermostatTarget * 1.5 };
+		}
+	}
+
+	function handleCool() {
+		dispatch('heat', { factor: 0.67 });
+		if ($config.thermostatEnabled) {
+			$config = { ...$config, thermostatTarget: $config.thermostatTarget * 0.67 };
+		}
+	}
+
 	function setHertz(e: Event) {
 		$config = { ...$config, hertz: Number((e.target as HTMLInputElement).value) };
 	}
@@ -267,9 +292,18 @@
 		<div class="controls">
 			<div class="temp-row">
 				<span class="temp-label">T = {($latestState?.temperature ?? 0).toFixed(2)}</span>
-				<button class="temp-btn" onclick={() => dispatch('heat', { factor: 1.5 })}>Heizen</button>
-				<button class="temp-btn" onclick={() => dispatch('heat', { factor: 0.67 })}>Kühlen</button>
+				<button
+					class="temp-btn thermostat-btn"
+					class:active={$config.thermostatEnabled}
+					onclick={toggleThermostat}
+					title={$config.thermostatEnabled ? `Thermostat: ${$config.thermostatTarget.toFixed(2)}` : 'Temperatur fixieren'}
+				>{$config.thermostatEnabled ? '\uD83D\uDD12' : '\uD83D\uDD13'}</button>
+				<button class="temp-btn" onclick={handleHeat}>Heizen</button>
+				<button class="temp-btn" onclick={handleCool}>Kühlen</button>
 			</div>
+			{#if $config.thermostatEnabled}
+				<div class="thermostat-info">Thermostat: {$config.thermostatTarget.toFixed(2)}</div>
+			{/if}
 
 			<label>
 				Volumen: {$config.effectiveWidth}
@@ -611,6 +645,18 @@
 
 	.temp-btn:hover {
 		background: #444;
+	}
+
+	.thermostat-btn.active {
+		background: #8b5e00;
+		color: #ffd700;
+		border-color: #c89600;
+	}
+
+	.thermostat-info {
+		font-size: 0.75rem;
+		color: #c89600;
+		font-family: monospace;
 	}
 
 	.step-rates {

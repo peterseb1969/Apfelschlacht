@@ -37,6 +37,7 @@
 			simulation.setForwardRate($config.forwardRateOverride);
 			simulation.setReverseRate($config.reverseRateOverride);
 			simulation.setStepRates($config.stepRateOverrides);
+			simulation.setThermostat($config.thermostatEnabled, $config.thermostatTarget);
 			bgGrey = $config.bgGrey;
 		});
 
