@@ -169,7 +169,7 @@ export const reactionLibrary: ReactionDefinition[] = [
 			{ symbol: 'HI', color: '#e91e63', radius: 7, defaultCount: 0, role: 'product' }
 		],
 		reactants: ['H\u2082', 'I\u2082'],
-		products: ['HI'],
+		products: ['HI', 'HI'],
 		forwardRate: 0.5,
 		reverseRate: 0.2,
 		reversible: true
@@ -249,7 +249,7 @@ export const reactionLibrary: ReactionDefinition[] = [
 	// === EXCHANGE ===
 	{
 		id: 'co-h2o',
-		name: 'Wassergas-Shift',
+		name: 'Wassergas-Shift-Reaktion',
 		nameEn: 'Water-Gas Shift',
 		equation: 'CO + H\u2082O \u21CC CO\u2082 + H\u2082',
 		category: 'exchange',
@@ -452,7 +452,7 @@ export const reactionLibrary: ReactionDefinition[] = [
 			{
 				reactants: ['CH\u2083\u2022', 'CH\u2083\u2022'],
 				products: ['C\u2082H\u2086'],
-				forwardRate: 0.7,
+				forwardRate: 0.15,
 				reverseRate: 0.01,
 				reversible: true,
 				equation: '2 CH\u2083\u2022 \u2192 C\u2082H\u2086 (Abbruch)'
