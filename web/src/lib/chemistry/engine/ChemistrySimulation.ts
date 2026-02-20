@@ -4,7 +4,8 @@ import { Injector } from './Injector';
 import {
 	SCREEN_WIDTH, SCREEN_HEIGHT, DEFAULT_HERTZ, DEFAULT_MOTION,
 	DEFAULT_GRAVITY, DEFAULT_EFFECTIVE_WIDTH, DEFAULT_TEMPERATURE,
-	DENSITY_SECTIONS, SETTLING_FORCE, SETTLING_DAMPING, SETTLING_THRESHOLD
+	DENSITY_SECTIONS, SETTLING_FORCE, SETTLING_DAMPING, SETTLING_THRESHOLD,
+	DRAIN_WIDTH, DRAIN_HEIGHT, DRAIN_DWELL_TIME, DRAIN_BLINK_TIME
 } from './constants';
 import type {
 	ReactionDefinition, SpeciesDefinition,
@@ -39,6 +40,8 @@ export class ChemistrySimulation {
 	private stepRateOverrides: Record<number, { forward?: number; reverse?: number }> = {};
 	private thermostatEnabled = false;
 	private thermostatTarget = 0;
+	private drainSpecies: string | null = null;
+	private drainedCount = 0;
 
 	constructor() {}
 
@@ -96,6 +99,14 @@ export class ChemistrySimulation {
 		this.thermostatTarget = target;
 	}
 
+	setDrainSpecies(species: string | null): void {
+		this.drainSpecies = species;
+		this.drainedCount = 0;
+		for (const arr of this.particles.values()) {
+			for (const p of arr) p.drainDwell = 0;
+		}
+	}
+
 	setup(): void {
 		ChemistryParticle.resetIdCounter();
 		this.particles.clear();
@@ -107,6 +118,7 @@ export class ChemistrySimulation {
 		this.wasGravityOn = false;
 		this.currentTemperature = DEFAULT_TEMPERATURE;
 		this.injectors = [];
+		this.drainedCount = 0;
 
 		if (!this.reaction) return;
 
@@ -398,6 +410,30 @@ export class ChemistrySimulation {
 				this.executeDecay(arr[idx], rule.toSpecies);
 			}
 			this.decayAccumulators.set(ri, remaining);
+		}
+
+		// 6b. Drain zone — remove target species that dwell long enough
+		if (this.drainSpecies) {
+			const zx = this.effectiveWidth - DRAIN_WIDTH;
+			const zy = this.height - DRAIN_HEIGHT;
+			const arr = this.particles.get(this.drainSpecies);
+			if (arr) {
+				for (let i = arr.length - 1; i >= 0; i--) {
+					const p = arr[i];
+					if (p.pinned) continue;
+					const inZone = p.x >= zx && p.x <= this.effectiveWidth
+								&& p.y >= zy && p.y <= this.height;
+					if (inZone) {
+						p.drainDwell += dt;
+						if (p.drainDwell >= DRAIN_DWELL_TIME + DRAIN_BLINK_TIME) {
+							this.removeParticle(p);
+							this.drainedCount++;
+						}
+					} else {
+						p.drainDwell = Math.max(0, p.drainDwell - dt * 2);
+					}
+				}
+			}
 		}
 
 		// 7. Temperature + density recording + thermostat
@@ -853,7 +889,8 @@ export class ChemistrySimulation {
 					mass: p.mass,
 					rotation: p.rotation,
 					isProduct: p.isProduct,
-					pinned: p.pinned
+					pinned: p.pinned,
+					drainProgress: p.drainDwell / DRAIN_DWELL_TIME
 				});
 			}
 		}
@@ -871,7 +908,15 @@ export class ChemistrySimulation {
 			gravityOn: this.gravityOn,
 			temperature: this.currentTemperature,
 			pressure: this.getPressure(),
-			densitySections: [...this.densitySections]
+			densitySections: [...this.densitySections],
+			drainZone: this.drainSpecies ? {
+				x: this.effectiveWidth - DRAIN_WIDTH,
+				y: this.height - DRAIN_HEIGHT,
+				w: DRAIN_WIDTH,
+				h: DRAIN_HEIGHT,
+				species: this.drainSpecies
+			} : null,
+			drainedCount: this.drainedCount
 		};
 	}
 }

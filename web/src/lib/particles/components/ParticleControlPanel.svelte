@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { MIN_COUNT, MAX_COUNT, MIN_RADIUS, MAX_RADIUS, MIN_HERTZ, MAX_HERTZ } from '../engine/constants';
-	import { running, config, chartData, maWindow } from '../stores/particleStore';
+	import { running, config, chartData, maWindow, latestState } from '../stores/particleStore';
 	import { createEventDispatcher } from 'svelte';
+	import type { ParticleType } from '../engine/types';
 
 	const dispatch = createEventDispatcher();
 
@@ -89,6 +90,11 @@
 		$config = { ...$config, gravityOn: !$config.gravityOn };
 	}
 
+	function setDrainSpecies(e: Event) {
+		const val = (e.target as HTMLSelectElement).value;
+		$config = { ...$config, drainSpecies: val === '' ? null : val as ParticleType };
+	}
+
 	function setMaWindow(e: Event) {
 		$maWindow = Number((e.target as HTMLInputElement).value);
 	}
@@ -172,6 +178,21 @@
 					<input type="range" min={0} max={2} step={0.1} value={$config.gravity} oninput={setGravity} />
 				</label>
 			{/if}
+
+			<div class="drain-row">
+				<span>Drain:</span>
+				<select class="drain-select" value={$config.drainSpecies ?? ''} onchange={setDrainSpecies}>
+					<option value="">Aus</option>
+					<option value="X">X</option>
+					<option value="Y">Y</option>
+					<option value="Z">Z</option>
+					<option value="C">C</option>
+					<option value="S">S</option>
+				</select>
+				{#if $config.drainSpecies && $latestState}
+					<span class="drain-count">{$latestState.drainedCount} entfernt</span>
+				{/if}
+			</div>
 
 			<label>
 				GD-Fenster: {$maWindow}
@@ -318,5 +339,26 @@
 
 	.buttons button:hover {
 		opacity: 0.85;
+	}
+
+	.drain-row {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		font-size: 0.85rem;
+	}
+
+	.drain-select {
+		background: #333;
+		color: white;
+		border: 1px solid #666;
+		border-radius: 4px;
+		padding: 2px 6px;
+		font-size: 0.85rem;
+	}
+
+	.drain-count {
+		color: rgba(0, 220, 150, 0.85);
+		font-size: 0.8rem;
 	}
 </style>

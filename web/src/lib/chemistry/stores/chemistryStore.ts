@@ -19,7 +19,8 @@ export const config = writable({
 	reverseRateOverride: null as number | null,
 	stepRateOverrides: {} as Record<number, { forward?: number; reverse?: number }>,
 	thermostatEnabled: false,
-	thermostatTarget: 0
+	thermostatTarget: 0,
+	drainSpecies: null as string | null
 });
 
 export const chartData = writable<ChemistryChartPoint[]>([]);

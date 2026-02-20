@@ -62,6 +62,7 @@ export interface ChemistryParticleState {
 	rotation: number;
 	isProduct: boolean;
 	pinned: boolean;
+	drainProgress: number;
 }
 
 export interface InjectorState {
@@ -86,6 +87,8 @@ export interface ChemistrySimState {
 	temperature: number;
 	pressure: number;
 	densitySections: number[];
+	drainZone: { x: number; y: number; w: number; h: number; species: string } | null;
+	drainedCount: number;
 }
 
 export interface ChemistryChartPoint {

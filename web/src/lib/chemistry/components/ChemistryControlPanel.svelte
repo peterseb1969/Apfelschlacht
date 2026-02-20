@@ -47,7 +47,7 @@
 		const reaction = $reactions.find(r => r.id === id);
 		if (reaction) {
 			$activeReaction = reaction;
-			$config = { ...$config, forwardRateOverride: null, reverseRateOverride: null, stepRateOverrides: {} };
+			$config = { ...$config, forwardRateOverride: null, reverseRateOverride: null, stepRateOverrides: {}, drainSpecies: null };
 			$running = false;
 			$chartData = [];
 			dispatch('reset');
@@ -117,6 +117,11 @@
 		const overrides = { ...$config.stepRateOverrides };
 		overrides[stepIndex] = { ...overrides[stepIndex], reverse: value };
 		$config = { ...$config, stepRateOverrides: overrides };
+	}
+
+	function setDrainSpecies(e: Event) {
+		const val = (e.target as HTMLSelectElement).value;
+		$config = { ...$config, drainSpecies: val || null };
 	}
 
 	function toggleThermostat() {
@@ -365,6 +370,21 @@
 			{#if $config.thermostatEnabled}
 				<div class="thermostat-info">Thermostat: {$config.thermostatTarget.toFixed(2)}</div>
 			{/if}
+
+			<div class="drain-row">
+				<span class="drain-label">Produktabzug</span>
+				<select class="drain-select" value={$config.drainSpecies ?? ''} onchange={setDrainSpecies}>
+					<option value="">Aus</option>
+					{#if $activeReaction}
+						{#each $activeReaction.species as species}
+							<option value={species.symbol}>{species.symbol}</option>
+						{/each}
+					{/if}
+				</select>
+				{#if $config.drainSpecies && $latestState}
+					<span class="drain-count">{$latestState.drainedCount}</span>
+				{/if}
+			</div>
 
 			<label>
 				Volumen: {$config.effectiveWidth}
@@ -722,6 +742,31 @@
 		font-size: 0.75rem;
 		color: #c89600;
 		font-family: monospace;
+	}
+
+	.drain-row {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+	}
+
+	.drain-label {
+		font-size: 0.85rem;
+		flex-shrink: 0;
+	}
+
+	.drain-select {
+		flex: 1;
+		min-width: 0;
+		padding: 2px 4px;
+		font-size: 0.8rem;
+	}
+
+	.drain-count {
+		font-family: monospace;
+		font-size: 0.8rem;
+		color: #00dc96;
+		flex-shrink: 0;
 	}
 
 	.step-rates {

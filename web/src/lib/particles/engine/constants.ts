@@ -22,3 +22,8 @@ export const MAX_HERTZ = 200;
 
 export const DENSITY_SECTIONS = 10;
 export const MAX_STATS_ENTRIES = 10_000;
+
+export const DRAIN_WIDTH = 120;
+export const DRAIN_HEIGHT = 100;
+export const DRAIN_DWELL_TIME = 0.5;
+export const DRAIN_BLINK_TIME = 0.3;

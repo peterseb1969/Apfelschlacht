@@ -5,9 +5,10 @@ import {
 	DEFAULT_COUNT_X, DEFAULT_COUNT_Y, DEFAULT_COUNT_Z,
 	DEFAULT_RADIUS_X, DEFAULT_RADIUS_Y, DEFAULT_RADIUS_Z,
 	DEFAULT_DECAY, DEFAULT_HERTZ, DEFAULT_MOTION, DEFAULT_GRAVITY,
-	DEFAULT_STABILITY_FACTOR, DENSITY_SECTIONS
+	DEFAULT_STABILITY_FACTOR, DENSITY_SECTIONS,
+	DRAIN_WIDTH, DRAIN_HEIGHT, DRAIN_DWELL_TIME, DRAIN_BLINK_TIME
 } from './constants';
-import type { ParticleSimState, ParticleState } from './types';
+import type { ParticleSimState, ParticleState, ParticleType } from './types';
 
 export class ParticleSimulation {
 	width = SCREEN_WIDTH;
@@ -38,6 +39,8 @@ export class ParticleSimulation {
 	private stabilizedBreakingAccumulator = 0;
 	private timeSinceRecord = 0;
 	private densitySections: number[] = new Array(DENSITY_SECTIONS).fill(0);
+	private drainSpecies: ParticleType | null = null;
+	private drainedCount = 0;
 
 	/** Total KE when gravity was last turned on (for energy restoration on toggle-off) */
 	private keBeforeGravity = 0;
@@ -63,6 +66,7 @@ export class ParticleSimulation {
 		this.keBeforeGravity = 0;
 		this.wasGravityOn = false;
 		this.currentTemperature = 1.0;
+		this.drainedCount = 0;
 		this.stats.clear();
 
 		const massX = this.radiusX / 10;
@@ -221,6 +225,29 @@ export class ParticleSimulation {
 				this.stabilizedBreakingAccumulator -= 1;
 				const idx = Math.floor(Math.random() * this.stabilized.length);
 				this.breakStabilized(this.stabilized[idx]);
+			}
+		}
+
+		// 6c. Drain zone — remove target species that dwell long enough
+		if (this.drainSpecies) {
+			const zx = this.width - DRAIN_WIDTH;
+			const zy = this.height - DRAIN_HEIGHT;
+			const arr = this.getDrainArray();
+			if (arr) {
+				for (let i = arr.length - 1; i >= 0; i--) {
+					const p = arr[i];
+					const inZone = p.x >= zx && p.x <= this.width
+					            && p.y >= zy && p.y <= this.height;
+					if (inZone) {
+						p.drainDwell += dt;
+						if (p.drainDwell >= DRAIN_DWELL_TIME + DRAIN_BLINK_TIME) {
+							arr.splice(i, 1);
+							this.drainedCount++;
+						}
+					} else {
+						p.drainDwell = Math.max(0, p.drainDwell - dt * 2);
+					}
+				}
 			}
 		}
 
@@ -458,6 +485,26 @@ export class ParticleSimulation {
 		return ke;
 	}
 
+	setDrainSpecies(species: ParticleType | null): void {
+		if (species === this.drainSpecies) return;
+		this.drainSpecies = species;
+		this.drainedCount = 0;
+		for (const p of this.getAllParticles()) {
+			p.drainDwell = 0;
+		}
+	}
+
+	private getDrainArray(): Particle[] | null {
+		switch (this.drainSpecies) {
+			case 'X': return this.atomX;
+			case 'Y': return this.atomY;
+			case 'Z': return this.atomZ;
+			case 'C': return this.complexes;
+			case 'S': return this.stabilized;
+			default: return null;
+		}
+	}
+
 	setTemperature(newTemp: number): void {
 		if (newTemp <= 0 || this.currentTemperature <= 0) return;
 		const all = this.getAllParticles();
@@ -497,7 +544,8 @@ export class ParticleSimulation {
 			vy: p.vy,
 			radius: p.radius,
 			mass: p.mass,
-			rotation: p.rotation
+			rotation: p.rotation,
+			drainProgress: p.drainDwell / DRAIN_DWELL_TIME
 		}));
 
 		return {
@@ -513,6 +561,14 @@ export class ParticleSimulation {
 			countS: this.stabilized.length,
 			hertz: this.hertz,
 			gravityOn: this.gravityOn,
+			drainZone: this.drainSpecies ? {
+				x: this.width - DRAIN_WIDTH,
+				y: this.height - DRAIN_HEIGHT,
+				w: DRAIN_WIDTH,
+				h: DRAIN_HEIGHT,
+				species: this.drainSpecies
+			} : null,
+			drainedCount: this.drainedCount,
 			radiusX: this.radiusX,
 			radiusY: this.radiusY,
 			radiusZ: this.radiusZ,

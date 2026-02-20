@@ -17,6 +17,8 @@ export class Particle {
 	bindingEnergyCZ = 0;
 	/** Rotation angle for complex spin (radians) */
 	rotation = 0;
+	/** Time spent inside drain zone */
+	drainDwell = 0;
 	/** Angular velocity (radians/tick), computed from collision angular momentum */
 	angularVelocity = 0;
 

@@ -11,6 +11,7 @@ export interface ParticleState {
 	mass: number;
 	/** Rotation angle for complex rendering */
 	rotation: number;
+	drainProgress: number;
 }
 
 export interface ParticleSimState {
@@ -27,6 +28,8 @@ export interface ParticleSimState {
 	hertz: number;
 	gravityOn: boolean;
 	densitySections: number[];
+	drainZone: { x: number; y: number; w: number; h: number; species: ParticleType } | null;
+	drainedCount: number;
 	/** Component radii for complex rendering */
 	radiusX: number;
 	radiusY: number;

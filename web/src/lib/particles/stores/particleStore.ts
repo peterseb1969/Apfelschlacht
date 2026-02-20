@@ -1,5 +1,5 @@
 import { writable } from 'svelte/store';
-import type { ParticleSimState, ParticleChartPoint } from '../engine/types';
+import type { ParticleSimState, ParticleChartPoint, ParticleType } from '../engine/types';
 import {
 	DEFAULT_COUNT_X, DEFAULT_COUNT_Y, DEFAULT_COUNT_Z,
 	DEFAULT_RADIUS_X, DEFAULT_RADIUS_Y, DEFAULT_RADIUS_Z,
@@ -26,7 +26,8 @@ export const config = writable({
 	colorX: '#3498db',
 	colorY: '#e74c3c',
 	colorZ: '#f39c12',
-	bgGrey: 26    // 0–255, default matches #1a1a2e ≈ 26
+	bgGrey: 26,    // 0–255, default matches #1a1a2e ≈ 26
+	drainSpecies: null as ParticleType | null
 });
 
 export const chartData = writable<ParticleChartPoint[]>([]);

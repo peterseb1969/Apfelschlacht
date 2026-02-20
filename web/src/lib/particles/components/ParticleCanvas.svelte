@@ -31,6 +31,7 @@
 			simulation.gravity = $config.gravity;
 			simulation.gravityOn = $config.gravityOn;
 			simulation.setTemperature($config.temperature);
+			simulation.setDrainSpecies($config.drainSpecies);
 			renderColors = { colorX: $config.colorX, colorY: $config.colorY, colorZ: $config.colorZ, bgGrey: $config.bgGrey };
 		});
 

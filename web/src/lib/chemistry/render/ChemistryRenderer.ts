@@ -30,6 +30,11 @@ export class ChemistryRenderer {
 			this.renderDensityOverlay(state);
 		}
 
+		// Drain zone
+		if (state.drainZone) {
+			this.renderDrainZone(state.drainZone);
+		}
+
 		// Draw injector nozzles
 		for (const inj of state.injectors) {
 			this.drawInjector(inj, effectiveWidth, height);
@@ -37,7 +42,7 @@ export class ChemistryRenderer {
 
 		// Draw particles
 		for (const p of state.particles) {
-			this.drawParticle(p, speciesDefs);
+			this.drawParticle(p, speciesDefs, state.simTime);
 		}
 
 		// Draw piston
@@ -49,10 +54,18 @@ export class ChemistryRenderer {
 		this.drawHUD(state);
 	}
 
-	private drawParticle(p: ChemistryParticleState, speciesDefs: Map<string, SpeciesDefinition>): void {
+	private drawParticle(p: ChemistryParticleState, speciesDefs: Map<string, SpeciesDefinition>, simTime: number): void {
 		const { ctx } = this;
 		const def = speciesDefs.get(p.species);
 		const color = def?.color ?? '#aaa';
+
+		// Drain blinking: when drainProgress >= 1, particle blinks before removal
+		if (p.drainProgress >= 1) {
+			const blinkPhase = p.drainProgress - 1; // 0..~0.6
+			const freq = 8 + blinkPhase * 30; // accelerating blink
+			const alpha = 0.3 + 0.7 * Math.abs(Math.sin(simTime * freq));
+			ctx.globalAlpha = alpha;
+		}
 
 		if (p.pinned || def?.solid) {
 			this.drawPinnedParticle(p, color);
@@ -77,6 +90,11 @@ export class ChemistryRenderer {
 			ctx.strokeStyle = 'rgba(255, 255, 255, 0.45)';
 			ctx.lineWidth = 2;
 			ctx.stroke();
+		}
+
+		// Restore alpha after drain blink
+		if (p.drainProgress >= 1) {
+			ctx.globalAlpha = 1;
 		}
 	}
 
@@ -246,6 +264,43 @@ export class ChemistryRenderer {
 		ctx.stroke();
 	}
 
+	private renderDrainZone(zone: { x: number; y: number; w: number; h: number; species: string }): void {
+		const { ctx } = this;
+		const { x, y, w, h, species } = zone;
+
+		// Semi-transparent teal background
+		ctx.fillStyle = 'rgba(0, 180, 120, 0.12)';
+		ctx.fillRect(x, y, w, h);
+
+		// Hatched pattern (teal tint)
+		ctx.save();
+		ctx.beginPath();
+		ctx.rect(x, y, w, h);
+		ctx.clip();
+		ctx.strokeStyle = 'rgba(0, 180, 120, 0.15)';
+		ctx.lineWidth = 1;
+		const step = 14;
+		ctx.beginPath();
+		for (let lx = x - h; lx < x + w + h; lx += step) {
+			ctx.moveTo(lx, y);
+			ctx.lineTo(lx + h, y + h);
+		}
+		ctx.stroke();
+		ctx.restore();
+
+		// Thin border
+		ctx.strokeStyle = 'rgba(0, 180, 120, 0.35)';
+		ctx.lineWidth = 1;
+		ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+
+		// Species label centered
+		ctx.font = 'bold 14px system-ui, sans-serif';
+		ctx.textAlign = 'center';
+		ctx.textBaseline = 'middle';
+		ctx.fillStyle = 'rgba(0, 220, 150, 0.5)';
+		ctx.fillText(species, x + w / 2, y + h / 2);
+	}
+
 	private renderDensityOverlay(state: ChemistrySimState): void {
 		const { ctx } = this;
 		const { effectiveWidth, height, densitySections } = state;
@@ -271,6 +326,9 @@ export class ChemistryRenderer {
 			`T = ${state.temperature.toFixed(1)}`,
 			`V = ${(state.effectiveWidth * state.height / 1000).toFixed(1)}`
 		];
+		if (state.drainZone) {
+			lines.push(`D: ${state.drainedCount} ${state.drainZone.species}`);
+		}
 
 		const boxWidth = 90;
 		const boxHeight = lines.length * lineHeight + padding * 2;

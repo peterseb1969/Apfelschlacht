@@ -15,6 +15,7 @@ export class ChemistryParticle {
 	rotation = 0;
 	angularVelocity = 0;
 	reactionCooldown = 0;
+	drainDwell = 0;
 
 	constructor(
 		species: string,

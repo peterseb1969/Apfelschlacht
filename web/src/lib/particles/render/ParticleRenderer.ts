@@ -1,4 +1,4 @@
-import type { ParticleSimState, ParticleState } from '../engine/types';
+import type { ParticleSimState, ParticleState, ParticleType } from '../engine/types';
 import { DENSITY_SECTIONS } from '../engine/constants';
 
 export interface RenderColors {
@@ -32,8 +32,21 @@ export class ParticleRenderer {
 			this.renderDensityOverlay(state);
 		}
 
+		// Drain zone (before particles)
+		if (state.drainZone) {
+			this.renderDrainZone(state.drainZone);
+		}
+
 		// Draw particles
 		for (const p of state.particles) {
+			const blinking = p.drainProgress >= 1;
+			if (blinking) {
+				const blinkPhase = p.drainProgress - 1;
+				const freq = 8 + blinkPhase * 30;
+				const alpha = 0.3 + 0.7 * Math.abs(Math.sin(state.simTime * freq));
+				ctx.globalAlpha = alpha;
+			}
+
 			if (p.type === 'S') {
 				this.drawStabilized(p, state.radiusX, state.radiusY, state.radiusZ, colors);
 			} else if (p.type === 'C') {
@@ -41,6 +54,15 @@ export class ParticleRenderer {
 			} else {
 				this.drawParticle(p, colors);
 			}
+
+			if (blinking) {
+				ctx.globalAlpha = 1;
+			}
+		}
+
+		// HUD
+		if (state.drainZone) {
+			this.drawHUD(state);
 		}
 	}
 
@@ -127,6 +149,61 @@ export class ParticleRenderer {
 		ctx.fill();
 
 		ctx.globalAlpha = 1;
+	}
+
+	private renderDrainZone(zone: { x: number; y: number; w: number; h: number; species: ParticleType }): void {
+		const { ctx } = this;
+		const { x, y, w, h, species } = zone;
+
+		// Semi-transparent teal background
+		ctx.fillStyle = 'rgba(0, 180, 120, 0.12)';
+		ctx.fillRect(x, y, w, h);
+
+		// Hatched pattern
+		ctx.save();
+		ctx.beginPath();
+		ctx.rect(x, y, w, h);
+		ctx.clip();
+		ctx.strokeStyle = 'rgba(0, 180, 120, 0.15)';
+		ctx.lineWidth = 1;
+		const step = 14;
+		ctx.beginPath();
+		for (let lx = x - h; lx < x + w + h; lx += step) {
+			ctx.moveTo(lx, y);
+			ctx.lineTo(lx + h, y + h);
+		}
+		ctx.stroke();
+		ctx.restore();
+
+		// Thin border
+		ctx.strokeStyle = 'rgba(0, 180, 120, 0.35)';
+		ctx.lineWidth = 1;
+		ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+
+		// Species label centered
+		ctx.font = 'bold 14px system-ui, sans-serif';
+		ctx.textAlign = 'center';
+		ctx.textBaseline = 'middle';
+		ctx.fillStyle = 'rgba(0, 220, 150, 0.5)';
+		ctx.fillText(species, x + w / 2, y + h / 2);
+	}
+
+	private drawHUD(state: ParticleSimState): void {
+		const { ctx } = this;
+		const label = `D: ${state.drainedCount} ${state.drainZone!.species}`;
+
+		ctx.font = 'bold 13px monospace';
+		const m = ctx.measureText(label);
+		const px = 8, py = 4;
+		const bw = m.width + px * 2;
+		const bh = 18 + py * 2;
+
+		ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+		ctx.fillRect(8, 8, bw, bh);
+		ctx.fillStyle = 'rgba(0, 220, 150, 0.85)';
+		ctx.textAlign = 'left';
+		ctx.textBaseline = 'top';
+		ctx.fillText(label, 8 + px, 8 + py + 2);
 	}
 
 	private renderDensityOverlay(state: ParticleSimState): void {

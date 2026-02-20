@@ -21,6 +21,11 @@ export const SETTLING_FORCE = 0.15;
 export const SETTLING_DAMPING = 0.92;
 export const SETTLING_THRESHOLD = 0.3;
 
+export const DRAIN_WIDTH = 120;
+export const DRAIN_HEIGHT = 100;
+export const DRAIN_DWELL_TIME = 0.5;
+export const DRAIN_BLINK_TIME = 0.3;
+
 export const INJECT_RATE = 20;
 export const INJECT_SPREAD = Math.PI / 6;
 export const INJECT_SPEED_FACTOR = 1.5;
