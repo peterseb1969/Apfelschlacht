@@ -43,6 +43,11 @@ export class ChemistrySimulation {
 	private drainSpecies: string | null = null;
 	private drainedCount = 0;
 
+	/** Drain dwell time adjusted for hertz so drain effectiveness is hertz-independent */
+	private get adjustedDrainDwell(): number {
+		return DRAIN_DWELL_TIME * (DEFAULT_HERTZ / this.hertz);
+	}
+
 	constructor() {}
 
 	loadReaction(reaction: ReactionDefinition): void {
@@ -425,7 +430,7 @@ export class ChemistrySimulation {
 								&& p.y >= zy && p.y <= this.height;
 					if (inZone) {
 						p.drainDwell += dt;
-						if (p.drainDwell >= DRAIN_DWELL_TIME + DRAIN_BLINK_TIME) {
+						if (p.drainDwell >= this.adjustedDrainDwell + DRAIN_BLINK_TIME) {
 							this.removeParticle(p);
 							this.drainedCount++;
 						}
@@ -890,7 +895,7 @@ export class ChemistrySimulation {
 					rotation: p.rotation,
 					isProduct: p.isProduct,
 					pinned: p.pinned,
-					drainProgress: p.drainDwell / DRAIN_DWELL_TIME
+					drainProgress: p.drainDwell / this.adjustedDrainDwell
 				});
 			}
 		}

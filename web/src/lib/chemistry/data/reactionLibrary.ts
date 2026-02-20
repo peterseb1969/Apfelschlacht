@@ -248,6 +248,26 @@ export const reactionLibrary: ReactionDefinition[] = [
 
 	// === EXCHANGE ===
 	{
+		id: 'fischer-ester',
+		name: 'Fischer-Veresterung',
+		nameEn: 'Fischer Esterification',
+		equation: 'CH\u2083COOH + C\u2082H\u2085OH \u21CC CH\u2083COOC\u2082H\u2085 + H\u2082O',
+		category: 'exchange',
+		description: 'Gleichgewichtsreaktion mit K \u2248 4. Durch Entfernen von Wasser (Drain, Molsieb, Wasserabscheider) l\u00E4sst sich die Ausbeute deutlich steigern \u2014 klassisches Le-Chatelier-Beispiel.',
+		descriptionEn: 'Equilibrium reaction with K \u2248 4. Removing water (drain, molecular sieves, Dean\u2013Stark trap) significantly increases yield \u2014 classic Le Chatelier example.',
+		species: [
+			{ symbol: 'CH\u2083COOH', color: '#f1c40f', radius: 9, defaultCount: 30, role: 'reactant', liquid: true },
+			{ symbol: 'C\u2082H\u2085OH', color: '#2ecc71', radius: 8, defaultCount: 30, role: 'reactant', liquid: true },
+			{ symbol: 'CH\u2083COOC\u2082H\u2085', color: '#e67e22', radius: 12, defaultCount: 0, role: 'product', liquid: true },
+			{ symbol: 'H\u2082O', color: '#85c1e9', radius: 5, defaultCount: 0, role: 'product', liquid: true }
+		],
+		reactants: ['CH\u2083COOH', 'C\u2082H\u2085OH'],
+		products: ['CH\u2083COOC\u2082H\u2085', 'H\u2082O'],
+		forwardRate: 0.4,
+		reverseRate: 0.1,
+		reversible: true
+	},
+	{
 		id: 'co-h2o',
 		name: 'Wassergas-Shift-Reaktion',
 		nameEn: 'Water-Gas Shift',

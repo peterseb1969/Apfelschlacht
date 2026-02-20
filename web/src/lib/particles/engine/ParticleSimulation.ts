@@ -42,6 +42,11 @@ export class ParticleSimulation {
 	private drainSpecies: ParticleType | null = null;
 	private drainedCount = 0;
 
+	/** Drain dwell time adjusted for hertz so drain effectiveness is hertz-independent */
+	private get adjustedDrainDwell(): number {
+		return DRAIN_DWELL_TIME * (DEFAULT_HERTZ / this.hertz);
+	}
+
 	/** Total KE when gravity was last turned on (for energy restoration on toggle-off) */
 	private keBeforeGravity = 0;
 	private wasGravityOn = false;
@@ -240,7 +245,7 @@ export class ParticleSimulation {
 					            && p.y >= zy && p.y <= this.height;
 					if (inZone) {
 						p.drainDwell += dt;
-						if (p.drainDwell >= DRAIN_DWELL_TIME + DRAIN_BLINK_TIME) {
+						if (p.drainDwell >= this.adjustedDrainDwell + DRAIN_BLINK_TIME) {
 							arr.splice(i, 1);
 							this.drainedCount++;
 						}
@@ -545,7 +550,7 @@ export class ParticleSimulation {
 			radius: p.radius,
 			mass: p.mass,
 			rotation: p.rotation,
-			drainProgress: p.drainDwell / DRAIN_DWELL_TIME
+			drainProgress: p.drainDwell / this.adjustedDrainDwell
 		}));
 
 		return {
