@@ -99,6 +99,7 @@ All other collisions (X-X, Y-Y, Z-Z, X-Z, Y-S, etc.) are fully elastic.
 | Decay constant (lambda) | 0–2 | Rate of complex C decay (live) |
 | Stability factor | 1–20 | S complexes decay at lambda / factor (live) |
 | Hertz | 10–200 | Physics tick rate (live) |
+| Drain | Aus/X/Y/Z/C/S | Remove a chosen species from a drain zone (bottom-right). Demonstrates Le Chatelier equilibrium shift. Dwell time scales with hertz for consistent behavior. |
 | Gravity toggle | on/off | Enable downward gravity |
 | Gravity strength | 0–2 | Gravitational acceleration (when enabled) |
 | MA Window | 2–50 | Moving average smoothing for charts |
@@ -137,7 +138,7 @@ A general-purpose particle simulation for chemical reactions. Choose from 18 bui
 | Dissociation | N₂O₄ ⇌ 2 NO₂, PCl₅ ⇌ PCl₃ + Cl₂, CaCO₃ ⇌ CaO + CO₂ |
 | Equilibrium | H₂ + I₂ ⇌ 2 HI |
 | Acid-Base | Acetic acid dissociation, Water autoprotolysis, Ammonia in water |
-| Exchange | HCl + NaOH → NaCl + H₂O, Water-gas shift (CO + H₂O ⇌ CO₂ + H₂) |
+| Exchange | Fischer esterification (CH₃COOH + C₂H₅OH ⇌ ester + H₂O), Water-gas shift (CO + H₂O ⇌ CO₂ + H₂) |
 | Catalysis / Chain | Haber-Bosch (7 steps), H₂/Br₂ chain (3 steps), CH₄ chlorination (4 steps), H₂ combustion (4 steps), Ozone depletion by Cl (3 steps) |
 
 **Multi-Step Reactions:**
@@ -187,6 +188,7 @@ Create and edit custom reactions via a full-featured modal editor:
 | Inject species | Add particles of a chosen species at runtime |
 | Heat / Cool | Scale particle velocities by x1.5 or x0.67 |
 | Volume | Adjust effective container width |
+| Drain | Remove a chosen species from a teal drain zone (bottom-right). Particles dwell, blink, and vanish. Demonstrates Le Chatelier: e.g. drain H₂O in Fischer esterification to increase yield. Dwell time scales inversely with hertz. |
 | Hertz | Simulation tick rate |
 | Gravity toggle + strength | Enable downward gravity |
 | MA Window | Moving average smoothing for charts |

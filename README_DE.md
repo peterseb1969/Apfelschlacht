@@ -99,6 +99,7 @@ Alle anderen Kollisionen (X-X, Y-Y, Z-Z, X-Z, Y-S usw.) sind vollstaendig elasti
 | Zerfallskonstante (Lambda) | 0–2 | Zerfallsrate der C-Komplexe (live) |
 | Stabilitaetsfaktor | 1–20 | S-Komplexe zerfallen mit Lambda / Faktor (live) |
 | Hertz | 10–200 | Physik-Taktrate (live) |
+| Drain | Aus/X/Y/Z/C/S | Entfernt eine gewaehlte Spezies aus einer Drain-Zone (unten rechts). Demonstriert Le-Chatelier-Gleichgewichtsverschiebung. Verweilzeit skaliert mit Hertz fuer konsistentes Verhalten. |
 | Schwerkraft | an/aus | Schwerkraft nach unten aktivieren |
 | Schwerkraft-Staerke | 0–2 | Gravitationsbeschleunigung (wenn aktiviert) |
 | GD-Fenster | 2–50 | Gleitender Durchschnitt fuer Diagramme |
@@ -137,7 +138,7 @@ Eine universelle Partikelsimulation fuer chemische Reaktionen. Waehle aus 18 vor
 | Dissoziation | N₂O₄ ⇌ 2 NO₂, PCl₅ ⇌ PCl₃ + Cl₂, CaCO₃ ⇌ CaO + CO₂ |
 | Gleichgewicht | H₂ + I₂ ⇌ 2 HI |
 | Saeure-Base | Essigsaeure-Dissoziation, Wasser-Autoprotolyse, Ammoniak in Wasser |
-| Austausch | HCl + NaOH → NaCl + H₂O, Wassergas-Shift (CO + H₂O ⇌ CO₂ + H₂) |
+| Austausch | Fischer-Veresterung (CH₃COOH + C₂H₅OH ⇌ Ester + H₂O), Wassergas-Shift-Reaktion (CO + H₂O ⇌ CO₂ + H₂) |
 | Katalyse / Ketten | Haber-Bosch (7 Schritte), H₂/Br₂-Kette (3 Schritte), CH₄-Chlorierung (4 Schritte), H₂-Verbrennung (4 Schritte), Ozonabbau durch Cl (3 Schritte) |
 
 **Mehrstufige Reaktionen:**
@@ -187,6 +188,7 @@ Erstelle und bearbeite eigene Reaktionen ueber einen umfangreichen Modal-Editor:
 | Spezies injizieren | Partikel einer gewaehlten Spezies zur Laufzeit hinzufuegen |
 | Heizen / Kuehlen | Partikelgeschwindigkeiten mit x1,5 oder x0,67 skalieren |
 | Volumen | Effektive Behaelterbreite anpassen |
+| Drain | Entfernt eine gewaehlte Spezies aus einer tuerkisen Drain-Zone (unten rechts). Partikel verweilen, blinken und verschwinden. Demonstriert Le Chatelier: z.B. H₂O bei der Fischer-Veresterung entfernen, um die Ausbeute zu steigern. Verweilzeit skaliert invers mit Hertz. |
 | Hertz | Simulationsfrequenz |
 | Schwerkraft + Staerke | Schwerkraft nach unten aktivieren |
 | GD-Fenster | Gleitender Durchschnitt fuer Diagramme |
