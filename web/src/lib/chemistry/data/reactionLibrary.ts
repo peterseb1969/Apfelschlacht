@@ -178,22 +178,52 @@ export const reactionLibrary: ReactionDefinition[] = [
 	// === ACID-BASE ===
 	{
 		id: 'h-oh',
-		name: 'Wasser-Autoprotoyse',
+		name: 'Wasser-Autoprotolyse',
 		nameEn: 'Water Autoprotolysis',
-		equation: 'H\u207A + OH\u207B \u21CC H\u2082O',
+		equation: 'H\u2082O \u21CC H\u207A + OH\u207B',
 		category: 'acid-base',
-		description: 'Neutralisationsreaktion: Protonen und Hydroxid-Ionen vereinigen sich zu Wasser.',
-		descriptionEn: 'Neutralization reaction: protons and hydroxide ions combine to form water.',
+		description: 'Autoprotolyse des Wassers mit S\u00E4ure-/Base-Zugabe. HCl (starke S\u00E4ure) und NaOH (starke Base) k\u00F6nnen injiziert werden, um das Gleichgewicht zu verschieben.',
+		descriptionEn: 'Water autoprotolysis with acid/base injection. HCl (strong acid) and NaOH (strong base) can be injected to shift the equilibrium.',
 		species: [
-			{ symbol: 'H\u207A', color: '#e74c3c', radius: 4, defaultCount: 30, role: 'reactant', liquid: true },
-			{ symbol: 'OH\u207B', color: '#3498db', radius: 5, defaultCount: 30, role: 'reactant', liquid: true },
-			{ symbol: 'H\u2082O', color: '#85c1e9', radius: 7, defaultCount: 0, role: 'product', liquid: true }
+			{ symbol: 'H\u2082O', color: '#85c1e9', radius: 7, defaultCount: 60, role: 'reactant', liquid: true },
+			{ symbol: 'H\u207A', color: '#e74c3c', radius: 4, defaultCount: 0, role: 'product', liquid: true },
+			{ symbol: 'OH\u207B', color: '#3498db', radius: 5, defaultCount: 0, role: 'product', liquid: true },
+			{ symbol: 'HCl', color: '#e67e22', radius: 6, defaultCount: 0, role: 'reactant', liquid: true },
+			{ symbol: 'NaOH', color: '#2ecc71', radius: 7, defaultCount: 0, role: 'reactant', liquid: true },
+			{ symbol: 'Cl\u207B', color: '#f39c12', radius: 5, defaultCount: 0, role: 'product', liquid: true },
+			{ symbol: 'Na\u207A', color: '#9b59b6', radius: 5, defaultCount: 0, role: 'product', liquid: true }
 		],
-		reactants: ['H\u207A', 'OH\u207B'],
-		products: ['H\u2082O'],
-		forwardRate: 0.95,
-		reverseRate: 0.02,
-		reversible: true
+		reactants: ['H\u2082O'],
+		products: ['H\u207A', 'OH\u207B'],
+		forwardRate: 0,
+		reverseRate: 0,
+		reversible: true,
+		steps: [
+			{
+				reactants: ['H\u2082O'],
+				products: ['H\u207A', 'OH\u207B'],
+				forwardRate: 0.02,
+				reverseRate: 0.9,
+				reversible: true,
+				equation: 'H\u2082O \u21CC H\u207A + OH\u207B'
+			},
+			{
+				reactants: ['HCl'],
+				products: ['H\u207A', 'Cl\u207B'],
+				forwardRate: 0.9,
+				reverseRate: 0,
+				reversible: false,
+				equation: 'HCl \u2192 H\u207A + Cl\u207B'
+			},
+			{
+				reactants: ['NaOH'],
+				products: ['Na\u207A', 'OH\u207B'],
+				forwardRate: 0.9,
+				reverseRate: 0,
+				reversible: false,
+				equation: 'NaOH \u2192 Na\u207A + OH\u207B'
+			}
+		]
 	},
 	{
 		id: 'nh3-h2o',
@@ -217,26 +247,6 @@ export const reactionLibrary: ReactionDefinition[] = [
 	},
 
 	// === EXCHANGE ===
-	{
-		id: 'hcl-naoh',
-		name: 'Salzsäure + Natronlauge',
-		nameEn: 'Hydrochloric Acid + Sodium Hydroxide',
-		equation: 'HCl + NaOH \u2192 NaCl + H\u2082O',
-		category: 'exchange',
-		description: 'Klassische Neutralisation: starke S\u00E4ure und starke Base reagieren zu Salz und Wasser.',
-		descriptionEn: 'Classic neutralization: strong acid and strong base react to form salt and water.',
-		species: [
-			{ symbol: 'HCl', color: '#e74c3c', radius: 6, defaultCount: 30, role: 'reactant', liquid: true },
-			{ symbol: 'NaOH', color: '#3498db', radius: 7, defaultCount: 30, role: 'reactant', liquid: true },
-			{ symbol: 'NaCl', color: '#ecf0f1', radius: 8, defaultCount: 0, role: 'product', liquid: true },
-			{ symbol: 'H\u2082O', color: '#85c1e9', radius: 6, defaultCount: 0, role: 'product', liquid: true }
-		],
-		reactants: ['HCl', 'NaOH'],
-		products: ['NaCl', 'H\u2082O'],
-		forwardRate: 0.9,
-		reverseRate: 0,
-		reversible: false
-	},
 	{
 		id: 'co-h2o',
 		name: 'Wassergas-Shift',
